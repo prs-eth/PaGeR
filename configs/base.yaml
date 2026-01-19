@@ -1,0 +1,61 @@
+debug: false
+seed: 42
+
+training:
+  num_train_epochs: 10
+  max_train_steps: null
+  gradient_accumulation_steps: 1
+  only_train_attention_layers: true
+  gradient_checkpointing: true
+  resume_path: null
+  use_EMA: true
+
+model:
+  modality: depth               # depth | normal
+  pretrained_path: GonzaloMG/marigold-e2e-ft-depth
+  checkpoint_path: null
+  enable_xformers: true
+  unet_positional_encoding: RoPE  # uv | RoPE | none
+  vae_use_RoPE: true  # true | false
+  metric_depth: false
+  log_scale: true
+
+data:
+  data_path: /home/pf/pfstaff/data
+  dataset: PanoInfinigen
+  scenes: both                  # indoor | outdoor | both
+  batch_size: 1
+  use_data_augmentation: true
+
+optimization:
+  learning_rate: 3e-4
+  lr_exp_warmup_steps: 0.03
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_weight_decay: 1e-2
+  adam_epsilon: 1e-8
+  clip_grad_norm: true
+  max_grad_norm: 1.0
+
+loss:
+  l1_loss_weight: 1.0
+  grad_loss_weight: 0.0
+  normals_consistency_loss_weight: 0.0
+  invalid_mask_weight: 0.0
+
+validation:
+  run_validation: true
+  run_tiny_validation: true
+  tiny_val_frequency: 200
+
+logging:
+  tracker_project_name: Pager
+  save_path: checkpoints/
+  save_frequency: 1
+  loss_report_frequency: 1
+  img_report_frequency: 200
+  report_to: wandb        # tensorboard | wandb
+  tensorboard:
+    log_path: logs
+  wandb:
+    run_name: null

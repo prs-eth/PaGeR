@@ -1,0 +1,32 @@
+name: panodepth_test
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.10
+  - numpy=1.26.4
+  - pytorch=2.2.0
+  - pytorch-cuda=12.1
+  - scipy=1.15.1
+  - matplotlib=3.10.0
+  - pip
+  - pip:
+      - accelerate==0.27.2
+      - xformers==0.0.24
+      - gradio==6.0.2
+      - huggingface-hub==0.36.0
+      - transformers
+      - diffusers==0.30.2
+      - tqdm==4.67.1
+      - einops==0.8.1
+      - datasets==3.3.0
+      - python-dotenv==1.1.1
+      - wandb==0.19.6
+      - opencv-python==4.11.0.86
+      - pytorch360convert==0.2.3
+      - lmdb==1.7.3 
+      - trimesh==4.9.0
+      - omegaconf==2.3.0
