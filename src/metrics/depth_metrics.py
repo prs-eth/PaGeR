@@ -1,5 +1,5 @@
 import torch
-from utils.utils import compute_scale_and_shift
+from src.utils.geometry_utils import compute_scale_and_shift
 
 def align_pred_gt(depth_pred, depth_gt, valid_mask, alignment_type):
     if alignment_type == "scale_and_shift":

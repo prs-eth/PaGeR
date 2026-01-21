@@ -1,18 +1,18 @@
+import sys
+import gc
+import torch
+import numpy as np
 import argparse
 import logging
 import gradio as gr
-import numpy as np
 from PIL import Image
-import torch
-import gc
-import sys
 from pathlib import Path
 from omegaconf import OmegaConf
-from src.pager import Pager
-from matplotlib import pyplot as plt
-from util.geometry_utils import compute_edge_mask, erp_to_point_cloud_glb, erp_to_cubemap
-from util.utils import prepare_image_for_logging
 from tempfile import NamedTemporaryFile
+from matplotlib import pyplot as plt
+from src.pager import Pager
+from src.utils.geometry_utils import compute_edge_mask, erp_to_point_cloud_glb, erp_to_cubemap
+from src.utils.utils import prepare_image_for_logging
 
 MIN_DEPTH = np.log(1e-2)
 DEPTH_RANGE = np.log(75.0)

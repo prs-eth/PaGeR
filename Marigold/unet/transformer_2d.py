@@ -23,7 +23,7 @@ from diffusers.models.embeddings import ImagePositionalEmbeddings, PatchEmbed, P
 from diffusers.models.modeling_outputs import Transformer2DModelOutput
 from diffusers.models.modeling_utils import LegacyModelMixin
 from diffusers.models.normalization import AdaLayerNormSingle
-from einops import rearrange, repeat
+from einops import rearrange
 from Marigold.unet.attention import BasicTransformerBlock
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name

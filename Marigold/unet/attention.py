@@ -25,7 +25,7 @@ from diffusers.models.embeddings import SinusoidalPositionalEmbedding
 from diffusers.models.normalization import AdaLayerNorm, AdaLayerNormContinuous, AdaLayerNormZero, RMSNorm
 
 from Marigold.unet.attention_processor import Attention
-from einops import rearrange, repeat
+from einops import rearrange
 
 logger = logging.get_logger(__name__)
 

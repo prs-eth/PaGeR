@@ -17,22 +17,31 @@ from accelerate.utils import ProjectConfiguration, set_seed
 
 from tqdm.auto import tqdm
 import diffusers
+from diffusers.training_utils import EMAModel
 from diffusers.utils import check_min_version, is_wandb_available
 from pathlib import Path
+from omegaconf import OmegaConf
+from datetime import datetime
 from torch.optim.lr_scheduler import LambdaLR
-from util.lr_scheduler import IterConstant, IterExponential
 from dataloaders.Structured3D_dataloader import Structured3D
 from dataloaders.Matterport3D360_dataloader import Matterport3D360
 from dataloaders.PanoInfinigen_dataloader import PanoInfinigen
 from dataloaders.Stanford2D3DS_dataloader import Stanford2D3DS
 from dataloaders.ScannetPano_dataloader import ScannetPano
 from dataloaders.Structured3D_ScannetPano_dataloader import Structured3D_ScannetPano
-from util.utils import prepare_trained_parameters, prepare_image_for_logging, log_images_mosaic, validation_loop, _flatten_dict, convert_paths_to_pathlib, convert_pathlib_to_strings
-from diffusers.training_utils import EMAModel
+
 from src.pager import Pager
-from omegaconf import OmegaConf
-from util.utils import args_to_omegaconf
-from datetime import datetime
+from src.utils.lr_scheduler import IterConstant, IterExponential
+from src.utils.utils import (
+    prepare_trained_parameters, 
+    prepare_image_for_logging, 
+    log_images_mosaic, 
+    validation_loop, 
+    _flatten_dict, 
+    convert_paths_to_pathlib, 
+    convert_pathlib_to_strings, 
+    args_to_omegaconf
+)
 
 if is_wandb_available():
     import wandb
@@ -42,7 +51,7 @@ logger = get_logger(__name__, log_level="INFO")
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Training code for 'Fine-Tuning Image-Conditional Diffusion Models is Easier than You Think'.")
+    parser = argparse.ArgumentParser(description="Training code for panorama depth and normal estimation models.")
     parser.add_argument(
         "--config",
         type=str,
@@ -182,7 +191,8 @@ def parse_args():
         "--scenes",
         default=None,
         choices=["indoor", "outdoor", "both"], 
-        help="Which scenes to use for training. 'indoor' for indoor scenes, 'outdoor' for outdoor scenes, 'both' for both indoor and outdoor scenes.",
+        help="Which scenes to use for training. 'indoor' for indoor scenes, 'outdoor' for outdoor scenes, " \
+        "'both' for both indoor and outdoor scenes.",
     )
 
     parser.add_argument(
@@ -422,17 +432,21 @@ def main():
         if cfg.model.checkpoint_path:
             logger.info("Both resume_path and checkpoint_path are set. Resuming training will take precedence.")
         logger.info(f"Resuming from training checkpoint at {cfg.training.resume_path}")
-        checkpoint_config[cfg.model.modality] = {"path": cfg.model.pretrained_path, "mode": "resume", "config": cfg.model}
+        checkpoint_config[cfg.model.modality] = {"path": cfg.model.pretrained_path, "mode": "resume", 
+                                                 "config": cfg.model}
     elif cfg.model.checkpoint_path:
         logger.info(f"Loading UNet weights from checkpoint at {cfg.model.checkpoint_path}")
         checkpoint_cfg = OmegaConf.load(cfg.model.checkpoint_path / "config.yaml")
         cfg.model = checkpoint_cfg.model
-        checkpoint_config[cfg.model.modality] = {"path": cfg.model.checkpoint_path, "mode": "trained", "config": checkpoint_cfg.model}
+        checkpoint_config[cfg.model.modality] = {"path": cfg.model.checkpoint_path, "mode": "trained", 
+                                                 "config": checkpoint_cfg.model}
     else:
         logger.info(f"Loading UNet weights from pretrained model at {cfg.model.pretrained_path}")
-        checkpoint_config[cfg.model.modality] = {"path": cfg.model.pretrained_path, "mode": "pretrained", "config": cfg.model}
+        checkpoint_config[cfg.model.modality] = {"path": cfg.model.pretrained_path, "mode": "pretrained", 
+                                                 "config": cfg.model}
 
-    pager = Pager(model_configs=checkpoint_config, pretrained_path = cfg.model.pretrained_path, train_modality=cfg.model.modality, device=accelerator.device)
+    pager = Pager(model_configs=checkpoint_config, pretrained_path = cfg.model.pretrained_path, 
+                  train_modality=cfg.model.modality, device=accelerator.device)
     pager.prepare_training(accelerator, cfg.training.gradient_checkpointing)
  
     if accelerator.is_main_process:
@@ -472,16 +486,22 @@ def main():
         
 
     dataset_cls = globals()[cfg.data.dataset]
-    train_ds = dataset_cls(data_path=cfg.data.data_path, training=True, split="train", scenes=cfg.data.scenes, log_depth=cfg.model.log_scale, data_augmentation=cfg.data.use_data_augmentation, debug=cfg.debug)
+    train_ds = dataset_cls(data_path=cfg.data.data_path, training=True, split="train", scenes=cfg.data.scenes, 
+                           log_depth=cfg.model.log_scale, data_augmentation=cfg.data.use_data_augmentation, debug=cfg.debug)
     if cfg.validation.run_validation:
-        val_ds = dataset_cls(data_path=cfg.data.data_path, training=True, split="val", scenes=cfg.data.scenes, log_depth=cfg.model.log_scale, debug=cfg.debug)
+        val_ds = dataset_cls(data_path=cfg.data.data_path, training=True, split="val", scenes=cfg.data.scenes, 
+                             log_depth=cfg.model.log_scale, debug=cfg.debug)
     if cfg.validation.run_tiny_validation:
-        tiny_val_ds = dataset_cls(data_path=cfg.data.data_path, training=True, split="tiny_val", scenes=cfg.data.scenes, log_depth=cfg.model.log_scale, debug=cfg.debug)
-    train_dataloader = torch.utils.data.DataLoader(train_ds, batch_size=cfg.data.batch_size, num_workers=num_workers, pin_memory=True, persistent_workers=True, prefetch_factor=prefetch_factor, shuffle=True, drop_last=True)
+        tiny_val_ds = dataset_cls(data_path=cfg.data.data_path, training=True, split="tiny_val", scenes=cfg.data.scenes, 
+                                  log_depth=cfg.model.log_scale, debug=cfg.debug)
+    train_dataloader = torch.utils.data.DataLoader(train_ds, batch_size=cfg.data.batch_size, num_workers=num_workers, pin_memory=True, 
+                                                   persistent_workers=True, prefetch_factor=prefetch_factor, shuffle=True, drop_last=True)
     if cfg.validation.run_validation:
-        val_dataloader = torch.utils.data.DataLoader(val_ds, batch_size=cfg.data.batch_size, num_workers=num_workers, pin_memory=True, persistent_workers=True, prefetch_factor=prefetch_factor, shuffle=False)
+        val_dataloader = torch.utils.data.DataLoader(val_ds, batch_size=cfg.data.batch_size, num_workers=num_workers, pin_memory=True, 
+                                                     persistent_workers=True, prefetch_factor=prefetch_factor, shuffle=False)
     if cfg.validation.run_tiny_validation:
-        tiny_val_dataloader = torch.utils.data.DataLoader(tiny_val_ds, batch_size=cfg.data.batch_size, num_workers=1, pin_memory=True, persistent_workers=True, prefetch_factor=1, shuffle=False)
+        tiny_val_dataloader = torch.utils.data.DataLoader(tiny_val_ds, batch_size=cfg.data.batch_size, num_workers=1, pin_memory=True, 
+                                                          persistent_workers=True, prefetch_factor=1, shuffle=False)
 
 
     pager.prepare_cubemap_PE(train_ds.HEIGHT, train_ds.WIDTH)
@@ -497,9 +517,12 @@ def main():
         cfg.training.max_train_steps = cfg.training.num_train_epochs * num_update_steps_per_epoch
 
     if cfg.debug:
-        lr_func = IterConstant(total_iter_length=min(cfg.training.max_train_steps, num_update_steps_per_epoch * cfg.training.num_train_epochs) * accelerator.num_processes)
+        lr_func = IterConstant(total_iter_length=min(cfg.training.max_train_steps, num_update_steps_per_epoch * 
+                                                     cfg.training.num_train_epochs) * accelerator.num_processes)
     else:
-        lr_func = IterExponential(total_iter_length=min(cfg.training.max_train_steps, num_update_steps_per_epoch * cfg.training.num_train_epochs) * accelerator.num_processes, final_ratio=0.01, warmup_steps=cfg.optimization.lr_exp_warmup_steps)
+        lr_func = IterExponential(total_iter_length=min(cfg.training.max_train_steps, num_update_steps_per_epoch * 
+                                                        cfg.training.num_train_epochs) * accelerator.num_processes, final_ratio=0.01, 
+                                                        warmup_steps=cfg.optimization.lr_exp_warmup_steps)
     lr_scheduler = LambdaLR(optimizer=optimizer, lr_lambda=lr_func)
     lr_scheduler = accelerator.prepare(lr_scheduler)
 
@@ -664,7 +687,8 @@ def main():
 
                     if cfg.validation.run_tiny_validation and global_step > 0 and global_step % cfg.validation.tiny_val_frequency == 0:
                         pager.trained_unet.eval()
-                        tiny_val_loss = validation_loop(accelerator, tiny_val_dataloader, pager, ema_unet, cfg, epoch, global_step, val_type="tiny_val")
+                        tiny_val_loss = validation_loop(accelerator, tiny_val_dataloader, pager, ema_unet, 
+                                                        cfg, epoch, global_step, val_type="tiny_val")
                         if accelerator.is_main_process:
                             logger.info(f"Step {global_step} Tiny Validation loss: {tiny_val_loss: .4f}")
                             accelerator.log({"global_step": global_step, "tiny_val/loss": tiny_val_loss}, step=global_step)
@@ -678,7 +702,8 @@ def main():
 
         if cfg.validation.run_validation:
             pager.trained_unet.eval()
-            val_epoch_loss = validation_loop(accelerator, val_dataloader, pager, ema_unet, cfg, epoch, global_step, val_type="val")
+            val_epoch_loss = validation_loop(accelerator, val_dataloader, pager, ema_unet, 
+                                             cfg, epoch, global_step, val_type="val")
             accelerator.wait_for_everyone()
             if accelerator.is_main_process and val_epoch_loss < best_val_loss:
                 best_val_loss = val_epoch_loss

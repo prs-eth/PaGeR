@@ -120,7 +120,8 @@ def validation_loop(accelerator, dataloader, pager, ema_unet, cfg, epoch, global
         if i in log_img_ids:
             log_val_images["rgb"].append(prepare_image_for_logging(batch["rgb"][0].cpu().numpy()))
             if cfg.model.modality == "depth":
-                result_image = pager.process_depth_output(pred_cubemap, orig_size=batch['depth'].shape[2:4], min_depth=min_depth, depth_range=depth_range, log_scale=cfg.model.log_scale)[1].cpu().numpy()
+                result_image = pager.process_depth_output(pred_cubemap, orig_size=batch['depth'].shape[2:4], min_depth=min_depth, 
+                                                          depth_range=depth_range, log_scale=cfg.model.log_scale)[1].cpu().numpy()
             elif cfg.model.modality == "normal":
                 result_image = pager.process_normal_output(pred_cubemap, orig_size=batch['normal'].shape[2:4]).cpu().numpy()
             log_val_images[cfg.model.modality].append(prepare_image_for_logging(result_image))

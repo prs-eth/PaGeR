@@ -23,8 +23,8 @@ from diffusers.image_processor import IPAdapterMaskProcessor
 from diffusers.utils import deprecate, logging
 from diffusers.utils.import_utils import is_torch_npu_available, is_xformers_available
 from diffusers.utils.torch_utils import is_torch_version, maybe_allow_in_graph
-from einops import rearrange, repeat
-from util.geometry_utils import erp_to_cubemap
+from einops import rearrange
+from src.utils.geometry_utils import erp_to_cubemap
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
 if is_torch_npu_available():

@@ -1,21 +1,28 @@
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 import argparse
+import torch
+import numpy as np
+from tqdm.auto import tqdm
+import matplotlib.pyplot as plt
+from matplotlib.colors import TwoSlopeNorm
 from dataloaders.PanoInfinigen_dataloader import PanoInfinigen
 from dataloaders.Matterport3D360_dataloader import Matterport3D360
 from dataloaders.Stanford2D3DS_dataloader import Stanford2D3DS
 from dataloaders.Structured3D_dataloader import Structured3D
 from dataloaders.ScannetPano_dataloader import ScannetPano
-from pathlib import Path
-from tqdm.auto import tqdm
-import torch
-from depth_metrics import MetricTracker, align_pred_gt
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.colors import TwoSlopeNorm
+from src.metrics.depth_metrics import MetricTracker, align_pred_gt
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Inference script for panorama depth estimation using diffusion models.")
+    parser = argparse.ArgumentParser(description="Depth evaluation script for panorama depth estimation.")
     parser.add_argument(
         "--data_path",
         type=str,

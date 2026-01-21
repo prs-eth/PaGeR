@@ -1,17 +1,24 @@
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 import argparse
+import torch
+import numpy as np
+from tqdm.auto import tqdm
+
 from dataloaders.PanoInfinigen_dataloader import PanoInfinigen
 from dataloaders.Structured3D_dataloader import Structured3D
-from pathlib import Path
-from tqdm.auto import tqdm
-import torch
-from normal_metrics import MetricTracker
-from utils.geometry_utils import unit_normals
-import numpy as np
+from src.metrics.normal_metrics import MetricTracker
+from src.utils.geometry_utils import unit_normals
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Inference script for panorama depth estimation using diffusion models.")
+    parser = argparse.ArgumentParser(description="Normal evaluation script for panorama normal estimation.")
     parser.add_argument(
         "--data_path",
         type=str,

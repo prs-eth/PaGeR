@@ -1,15 +1,16 @@
-import numpy as np
 import torch
-from torch.utils.data import Dataset
+import numpy as np
 from pathlib import Path
 from PIL import Image
 from struct import unpack
-from util.geometry_utils import roll_augment, erp_to_cubemap
+from torch.utils.data import Dataset
+from src.utils.geometry_utils import roll_augment, erp_to_cubemap
 
 class Matterport3D360(Dataset):
     HEIGHT, WIDTH = 1024, 2048
    
-    def __init__(self, data_path, split, training=False, log_depth=False, data_augmentation=False, scenes=None, debug=False):
+    def __init__(self, data_path, split, training=False, log_depth=False, data_augmentation=False, 
+                 scenes=None, debug=False):
         self.data_path = data_path / "Matterport3D360"
         self.split = split
         self.training = training
@@ -43,7 +44,9 @@ class Matterport3D360(Dataset):
                 self.vis_depth_path = self.vis_depth_path[::10]
         
         self.set_depth_ranges()
-        assert len(self.data_path) == len(self.labels_path) == len(self.vis_depth_path), f"Number of samples in data_path: {len(self.data_path)}, labels_path: {len(self.labels_path)}, vis_depth_path: {len(self.vis_depth_path)} are not equal."
+        assert len(self.data_path) == len(self.labels_path) == len(self.vis_depth_path), \
+        f"Number of samples in data_path: {len(self.data_path)}, labels_path: {len(self.labels_path)}, \
+        vis_depth_path: {len(self.vis_depth_path)} are not equal."
 
 
     def set_depth_ranges(self):

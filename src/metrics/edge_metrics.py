@@ -7,9 +7,9 @@
 
 
 import torch
-import torch.nn.functional as F
 import numpy as np
 from scipy import ndimage
+import torch.nn.functional as F
 
 def compute_sobel_edges(
     image, threshold=0.5, dilation_kernel=3

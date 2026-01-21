@@ -1,15 +1,20 @@
 import torch
 from torch import nn
 from torch.nn import Conv2d
-from utils.conv_padding import PaddedConv2d, valid_pad_conv_fn
-from utils.geometry_utils import get_positional_encoding
-from utils.geometry_utils import compute_scale_and_shift, compute_shift, depth_to_normals_erp, cubemap_to_erp
-from utils.loss import L1Loss, GradL1Loss, CosineNormalLoss
 from transformers import CLIPTextModel, CLIPTokenizer
 from diffusers import DDPMScheduler
 from diffusers.utils.import_utils import is_xformers_available
 from Marigold.unet.unet_2d_condition import UNet2DConditionModel
 from Marigold.vae.autoencoder_kl import AutoencoderKL
+from src.utils.conv_padding import PaddedConv2d, valid_pad_conv_fn
+from src.utils.loss import L1Loss, GradL1Loss, CosineNormalLoss
+from src.utils.geometry_utils import (
+    get_positional_encoding,
+      compute_scale_and_shift,
+        compute_shift, 
+        depth_to_normals_erp, 
+        cubemap_to_erp
+    )
 
 
 class Pager(nn.Module):
@@ -165,11 +170,13 @@ class Pager(nn.Module):
     def prepare_losses_dict(self, loss_cfg):
         self.losses_dict = {}
         if self.train_modality == "depth":
-            self.losses_dict["l1_loss"] = {"loss_fn": L1Loss(invalid_mask_weight=loss_cfg.invalid_mask_weight), "weight": loss_cfg.l1_loss_weight}
+            self.losses_dict["l1_loss"] = {"loss_fn": L1Loss(invalid_mask_weight=loss_cfg.invalid_mask_weight), 
+                                           "weight": loss_cfg.l1_loss_weight}
             if loss_cfg.grad_loss_weight > 0.0:
                 self.losses_dict["grad_loss"] = {"loss_fn": GradL1Loss(), "weight": loss_cfg.grad_loss_weight}
             if loss_cfg.normals_consistency_loss_weight > 0.0:
-                self.losses_dict["normals_consistency_loss"] = {"loss_fn": CosineNormalLoss(), "weight": loss_cfg.normals_consistency_loss_weight}
+                self.losses_dict["normals_consistency_loss"] = {"loss_fn": CosineNormalLoss(), 
+                                                                "weight": loss_cfg.normals_consistency_loss_weight}
         else:
             self.losses_dict["cosine_normal_loss"] = {"loss_fn": CosineNormalLoss(), "weight": 1.0} 
 
@@ -196,7 +203,8 @@ class Pager(nn.Module):
                 gt = batch['normal']
                 pred_depth = pred_cubemap
                 mask = batch["mask"]
-                pred_depth = self.process_depth_output(pred_depth, orig_size=gt.shape[2:], min_depth=min_depth, depth_range=depth_range, log_scale=log_scale)[0]
+                pred_depth = self.process_depth_output(pred_depth, orig_size=gt.shape[2:], min_depth=min_depth, 
+                                                       depth_range=depth_range, log_scale=log_scale)[0]
                 pred = depth_to_normals_erp(pred_depth).unsqueeze(0)
             else:
                 pred = pred_cubemap

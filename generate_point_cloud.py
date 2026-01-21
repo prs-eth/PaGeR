@@ -1,21 +1,23 @@
+import torch
+import numpy as np
+import argparse
+from pathlib import Path
+from tqdm.auto import tqdm
+
 from dataloaders.PanoInTheWild_dataloader import PanoInTheWild
 from dataloaders.PanoInfinigen_dataloader import PanoInfinigen
 from dataloaders.Matterport3D360_dataloader import Matterport3D360
 from dataloaders.Structured3D_dataloader import Structured3D
 from dataloaders.Stanford2D3DS_dataloader import Stanford2D3DS
 from dataloaders.Replica360_4K_dataloader import Replica360_4K
-import numpy as np
-from pathlib import Path
-import torch
-import argparse
-from tqdm.auto import tqdm
-from util.geometry_utils import compute_edge_mask, erp_to_pointcloud, save_ply_ascii, erp_to_point_cloud_glb
+from src.utils.geometry_utils import compute_edge_mask, erp_to_pointcloud, erp_to_point_cloud_glb
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Inference script for panorama depth estimation using diffusion models.")
+    parser = argparse.ArgumentParser(description="The generation script for point clouds from panorama depth and normal predictions.")
     parser.add_argument(
         "--data_path",
         type=str,
@@ -67,7 +69,8 @@ if __name__ == "__main__":
     args = parse_args()
     dataset_cls = globals()[args.dataset]
     test_ds = dataset_cls(data_path=Path(args.data_path), split="test", debug=args.debug)
-    test_dataloader = torch.utils.data.DataLoader(test_ds, batch_size=1, num_workers=1, pin_memory=True, persistent_workers=True, prefetch_factor=1, shuffle=False)
+    test_dataloader = torch.utils.data.DataLoader(test_ds, batch_size=1, num_workers=1, 
+                                        pin_memory=True, persistent_workers=True, prefetch_factor=1, shuffle=False)
     depth_path = Path(args.depth_path) / args.dataset
     normal_path = Path(args.normal_path) / args.dataset
     save_dir = depth_path / f"{args.color_modality}_point_clouds"

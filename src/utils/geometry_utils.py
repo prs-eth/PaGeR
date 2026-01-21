@@ -1,5 +1,5 @@
-import numpy as np
 import torch
+import numpy as np
 import trimesh
 from pytorch360convert import e2c, c2e
 

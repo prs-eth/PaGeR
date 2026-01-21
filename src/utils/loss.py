@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from utils.geometry_utils import unit_normals
+from src.utils.geometry_utils import unit_normals
 
 
 class L1Loss(nn.Module):

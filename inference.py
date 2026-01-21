@@ -1,12 +1,15 @@
-import argparse
-import logging
-import numpy as np
 import sys
 import torch
-from tqdm.auto import tqdm
-from diffusers.utils import check_min_version
+import numpy as np
+import logging
+import argparse
 from pathlib import Path
+from tqdm.auto import tqdm
+from PIL import Image
+from omegaconf import OmegaConf
 import matplotlib.pyplot as plt
+from diffusers.utils import check_min_version
+
 from dataloaders.PanoInTheWild_dataloader import PanoInTheWild
 from dataloaders.PanoInfinigen_dataloader import PanoInfinigen
 from dataloaders.Matterport3D360_dataloader import Matterport3D360
@@ -15,11 +18,9 @@ from dataloaders.Stanford2D3DS_dataloader import Stanford2D3DS
 from dataloaders.ScannetPano_dataloader import ScannetPano
 from dataloaders.Replica360_4K_dataloader import Replica360_4K
 from src.pager import Pager
-from util.utils import args_to_omegaconf, convert_paths_to_pathlib, prepare_image_for_logging, log_images_mosaic
-from PIL import Image
-from omegaconf import OmegaConf
-check_min_version("0.27.0.dev0")
+from src.utils.utils import args_to_omegaconf, convert_paths_to_pathlib, prepare_image_for_logging, log_images_mosaic
 
+check_min_version("0.27.0.dev0")
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Inference script for panorama depth estimation using diffusion models.")
@@ -69,7 +70,8 @@ def parse_args():
         "--dataset",
         type=str,
         default=None,
-        choices=["PanoInfinigen", "PanoInTheWild", "Matterport3D360", "Stanford2D3DS", "Structured3D", "ScannetPano", "Replica360_4K"],
+        choices=["PanoInfinigen", "PanoInTheWild", "Matterport3D360", "Stanford2D3DS", 
+                 "Structured3D", "ScannetPano", "Replica360_4K"],
         help="Data source to use. 'PanoInfinigen' for the synthetic dataset."
     )
 
@@ -77,7 +79,8 @@ def parse_args():
         "--scenes",
         default=None,
         choices=["indoor", "outdoor", "both"], 
-        help="Which scenes to use for training. 'indoor' for indoor scenes, 'outdoor' for outdoor scenes, 'both' for both indoor and outdoor scenes.",
+        help="Which scenes to use for training. 'indoor' for indoor scenes, 'outdoor' for outdoor scenes, " \
+        "'both' for both indoor and outdoor scenes.",
     )
 
     parser.add_argument(
@@ -141,15 +144,19 @@ def main():
 
     checkpoint_config = {}
     logger.info(f"Loading UNet weights from checkpoint at {cfg.model.checkpoint_path}")
-    checkpoint_config[checkpoint_cfg.model.modality] = {"path": cfg.model.checkpoint_path, "mode": "trained", "config": checkpoint_cfg.model}
+    checkpoint_config[checkpoint_cfg.model.modality] = {"path": cfg.model.checkpoint_path, 
+                                                        "mode": "trained", "config": checkpoint_cfg.model}
 
-    pager = Pager(model_configs=checkpoint_config, pretrained_path = cfg.model.pretrained_path, train_modality=cfg.model.modality, device=device)
+    pager = Pager(model_configs=checkpoint_config, pretrained_path = cfg.model.pretrained_path, 
+                  train_modality=cfg.model.modality, device=device)
     pager.unet[cfg.model.modality].to(device, dtype=pager.weight_dtype)
     pager.unet[cfg.model.modality].eval()
 
     dataset_cls = globals()[cfg.data.dataset]
-    test_ds = dataset_cls(data_path=Path(cfg.data.data_path), split="test", scenes=cfg.data.scenes, log_depth=cfg.model.log_scale, debug=cfg.debug)
-    test_dataloader = torch.utils.data.DataLoader(test_ds, batch_size=1, num_workers=1, pin_memory=True, persistent_workers=True, prefetch_factor=1, shuffle=False)
+    test_ds = dataset_cls(data_path=Path(cfg.data.data_path), split="test", scenes=cfg.data.scenes, 
+                          log_depth=cfg.model.log_scale, debug=cfg.debug)
+    test_dataloader = torch.utils.data.DataLoader(test_ds, batch_size=1, num_workers=1, pin_memory=True, 
+                                                  persistent_workers=True, prefetch_factor=1, shuffle=False)
 
     pager.prepare_cubemap_PE(test_ds.HEIGHT, test_ds.WIDTH)
     min_depth = test_ds.LOG_MIN_DEPTH if cfg.model.log_scale else test_ds.MIN_DEPTH
@@ -166,7 +173,8 @@ def main():
                 mask = None
             pred_cubemap = pager(batch, cfg.model.modality)
             if cfg.model.modality == "depth": 
-                pred, pred_image = pager.process_depth_output(pred_cubemap, orig_size=(dataset_cls.HEIGHT, dataset_cls.WIDTH), min_depth=min_depth, depth_range=depth_range, log_scale=cfg.model.log_scale, mask=mask)
+                pred, pred_image = pager.process_depth_output(pred_cubemap, orig_size=(dataset_cls.HEIGHT, dataset_cls.WIDTH), 
+                                                              min_depth=min_depth, depth_range=depth_range, log_scale=cfg.model.log_scale, mask=mask)
                 pred, pred_image = pred.cpu().numpy(), pred_image.cpu().numpy()
                 pred_image = np.clip(pred_image, pred_image.min(), np.quantile(pred_image, 0.99))
                 pred_image = prepare_image_for_logging(pred_image)

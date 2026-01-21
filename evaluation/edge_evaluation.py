@@ -1,18 +1,25 @@
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 import argparse
+import torch
+import numpy as np
+from tqdm.auto import tqdm
+import matplotlib.pyplot as plt
 from dataloaders.PanoInfinigen_dataloader import PanoInfinigen
 from dataloaders.Structured3D_dataloader import Structured3D
 from dataloaders.Replica360_4K_dataloader import Replica360_4K
-from pathlib import Path
-from tqdm.auto import tqdm
-import torch
-from edge_metrics import MetricTracker
-import numpy as np
-import matplotlib.pyplot as plt
+from src.metrics.edge_metrics import MetricTracker
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Inference script for panorama depth estimation using diffusion models.")
+    parser = argparse.ArgumentParser(description="Edge evaluation script for panorama depth estimation.")
     parser.add_argument(
         "--data_path",
         type=str,

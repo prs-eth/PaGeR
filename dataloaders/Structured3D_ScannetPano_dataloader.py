@@ -1,14 +1,15 @@
-import numpy as np
 import torch
-from torch.utils.data import Dataset
-from pathlib import Path
+import numpy as np
 from PIL import Image
-from util.geometry_utils import roll_augment, erp_to_cubemap
+from pathlib import Path
+from torch.utils.data import Dataset
+from src.utils.geometry_utils import roll_augment, erp_to_cubemap
 
 class Structured3D_ScannetPano(Dataset):
     
     HEIGHT, WIDTH = 512, 1024
-    def __init__(self, data_path, split, training=False, log_depth=False, data_augmentation=False, scenes=None, debug=False):
+    def __init__(self, data_path, split, training=False, log_depth=False, data_augmentation=False, 
+                 scenes=None, debug=False):
         self.data_path = data_path
         self.training = training
         self.split = split
