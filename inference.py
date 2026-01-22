@@ -9,6 +9,7 @@ from PIL import Image
 from omegaconf import OmegaConf
 import matplotlib.pyplot as plt
 from diffusers.utils import check_min_version
+from huggingface_hub import hf_hub_download
 
 from dataloaders.PanoInTheWild_dataloader import PanoInTheWild
 from dataloaders.PanoInfinigen_dataloader import PanoInfinigen
@@ -49,7 +50,7 @@ def parse_args():
         "--checkpoint_path",
         type=str,
         default=None,
-        help="UNet checkpoint to load. This only loads the savetensors weights of the UNet model.",
+        help="UNet checkpoint to load.",
     )
 
     parser.add_argument(
@@ -116,8 +117,16 @@ def parse_args():
 
 def main():
     args = parse_args()
+    try:
+        checkpoint_config_path = hf_hub_download(
+            repo_id=args.checkpoint_path,
+            filename="config.yaml"
+        )
+    except Exception as e:
+            checkpoint_config_path = Path(args.checkpoint_path) / "config.yaml"
+            
     cfg = OmegaConf.load(args.config)
-    checkpoint_cfg = OmegaConf.load(Path(args.checkpoint_path) / "config.yaml")
+    checkpoint_cfg = OmegaConf.load(checkpoint_config_path)
     cfg.model = checkpoint_cfg.model
 
     cfg = args_to_omegaconf(args, cfg)

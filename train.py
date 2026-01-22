@@ -14,6 +14,7 @@ import transformers
 from accelerate import Accelerator
 from accelerate.logging import get_logger
 from accelerate.utils import ProjectConfiguration, set_seed
+from huggingface_hub import hf_hub_download
 
 from tqdm.auto import tqdm
 import diffusers
@@ -436,7 +437,14 @@ def main():
                                                  "config": cfg.model}
     elif cfg.model.checkpoint_path:
         logger.info(f"Loading UNet weights from checkpoint at {cfg.model.checkpoint_path}")
-        checkpoint_cfg = OmegaConf.load(cfg.model.checkpoint_path / "config.yaml")
+        try:
+            checkpoint_config_path = hf_hub_download(
+                repo_id=cfg.model.checkpoint_path,
+                filename="config.yaml"
+            )
+        except Exception as e:
+            checkpoint_config_path = Path(cfg.model.checkpoint_path) / "config.yaml"
+        checkpoint_cfg = OmegaConf.load(checkpoint_config_path)
         cfg.model = checkpoint_cfg.model
         checkpoint_config[cfg.model.modality] = {"path": cfg.model.checkpoint_path, "mode": "trained", 
                                                  "config": checkpoint_cfg.model}

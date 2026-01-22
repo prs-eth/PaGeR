@@ -9,6 +9,7 @@ from PIL import Image
 from pathlib import Path
 from omegaconf import OmegaConf
 from tempfile import NamedTemporaryFile
+from huggingface_hub import hf_hub_download
 from matplotlib import pyplot as plt
 from src.pager import Pager
 from src.utils.geometry_utils import compute_edge_mask, erp_to_point_cloud_glb, erp_to_cubemap
@@ -36,10 +37,17 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--checkpoint_path",
-        default="checkpoints",
+        "--depth_checkpoint_path",
+        default="prs-eth/PaGeR-depth",
         type=str,
-        help="UNet checkpoint to load. This only loads the savetensors weights of the UNet model.",
+        help="UNet checkpoint to load.",
+    )
+
+    parser.add_argument(
+        "--normals_checkpoint_path",
+        default="prs-eth/PaGeR-normals",
+        type=str,
+        help="UNet checkpoint to load.",
     )
 
     parser.add_argument(
@@ -136,9 +144,6 @@ def clear_pointcloud():
 
 
 args = parse_args()
-checkpoint_path = Path(args.checkpoint_path)
-depth_checkpoint_path = checkpoint_path / "depth"
-normal_checkpoint_path = checkpoint_path / "normal"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -153,10 +158,25 @@ cmap = plt.get_cmap("Spectral")
 
 
 checkpoint_config = {}
-depth_config = OmegaConf.load(depth_checkpoint_path / "config.yaml")
-checkpoint_config["depth"] = {"path": depth_checkpoint_path, "mode": "trained", "config": depth_config.model}
-normal_config = OmegaConf.load(normal_checkpoint_path / "config.yaml")
-checkpoint_config["normal"] = {"path": normal_checkpoint_path, "mode": "trained", "config": normal_config.model}
+try:
+    depth_checkpoint_config_path = hf_hub_download(
+        repo_id=args.depth_checkpoint_path,
+        filename="config.yaml"
+    )
+except Exception as e:
+    depth_checkpoint_config_path = Path(args.depth_checkpoint_path) / "config.yaml"
+depth_config = OmegaConf.load(depth_checkpoint_config_path)
+checkpoint_config["depth"] = {"path": args.depth_checkpoint_path, "mode": "trained", "config": depth_config.model}
+
+try:
+    normal_checkpoint_config_path = hf_hub_download(
+        repo_id=args.normals_checkpoint_path,
+        filename="config.yaml"
+    )
+except Exception as e:
+    normal_checkpoint_config_path = Path(args.normals_checkpoint_path) / "config.yaml"
+normal_config = OmegaConf.load(normal_checkpoint_config_path)
+checkpoint_config["normal"] = {"path": args.normals_checkpoint_path, "mode": "trained", "config": normal_config.model}
 
 pager = Pager(model_configs=checkpoint_config, pretrained_path = depth_config.model.pretrained_path, device=device)
 pager.unet["depth"].to(device, dtype=pager.weight_dtype)
