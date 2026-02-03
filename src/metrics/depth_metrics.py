@@ -18,11 +18,10 @@ def align_pred_gt(depth_pred, depth_gt, valid_mask, alignment_type):
 
 
 class MetricTracker:
-    def __init__(self, tracked_metrics, save_error_list=False):
+    def __init__(self, tracked_metrics):
         self.tracked_metrics = tracked_metrics
         self.metrics_sum = {metric: 0.0 for metric in tracked_metrics}
         self.erp_weights = None
-        self.save_error_list = save_error_list
         self.error_list = {metric: [] for metric in tracked_metrics}
 
     def erp_cosine_weights(self, H, W, device=None, dtype=torch.float32):
@@ -189,9 +188,6 @@ class MetricTracker:
             metric_fn = getattr(self, metric)
             value = metric_fn(depth_pred, depth_gt, valid_mask)
             self.metrics_sum[metric] += value.item()
-            if self.save_error_list:
-                self.error_list[metric].append((id, value.item()))
-
 
     def calculate_final(self, num_samples):
         final_metrics = {}

@@ -64,10 +64,9 @@ def compute_skimage_edges_sobel(depth, mask, thresh=0.01):
 
 
 class MetricTracker:
-    def __init__(self, tracked_metrics, max_depth, save_error_list=False):
+    def __init__(self, tracked_metrics, max_depth):
         self.tracked_metrics = tracked_metrics
         self.metrics_sum = {metric: 0.0 for metric in tracked_metrics}
-        self.save_error_list = save_error_list
         self.error_list = {metric: [] for metric in tracked_metrics}
         self.max_depth = max_depth
 
@@ -167,9 +166,6 @@ class MetricTracker:
             gt_edges = compute_skimage_edges_sobel(depth_gt, valid_mask)
             value = metric_fn(pred_edges, gt_edges, valid_mask)
             self.metrics_sum[metric] += value.item()
-            if self.save_error_list:
-               self.error_list[metric].append((id, value.item()))
-
 
     def calculate_final(self, num_samples):
         final_metrics = {}

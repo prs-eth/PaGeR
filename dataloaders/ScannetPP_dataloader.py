@@ -5,11 +5,11 @@ from pathlib import Path
 from torch.utils.data import Dataset
 from src.utils.geometry_utils import roll_augment, erp_to_cubemap
 
-class ScannetPano(Dataset):
+class ScannetPP(Dataset):
     HEIGHT, WIDTH = 1284, 2572
     def __init__(self, data_path, split, training=False, log_depth=False, data_augmentation=False, 
                  scenes=None, debug=False):
-        self.data_path = data_path / "ScannetPano"
+        self.data_path = data_path / "ScannetPP"
         self.training = training
         self.split = split
         self.log_depth = log_depth

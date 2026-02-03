@@ -87,13 +87,15 @@ class Pager(nn.Module):
 
         
         if checkpoint_cfg['config'].enable_xformers:
-            if is_xformers_available():
+            if is_xformers_available() and self.device.type == "cuda":
                 import xformers
                 if self.unet.get("depth"):
                     self.unet["depth"].enable_xformers_memory_efficient_attention()
                 if self.unet.get("normal"):
                     self.unet["normal"].enable_xformers_memory_efficient_attention()
                 self.vae.enable_xformers_memory_efficient_attention()
+            else:
+                print("xFormers is not available. Proceeding without it.")
 
 
     def prepare_training(self, accelerator, gradient_checkpointing):

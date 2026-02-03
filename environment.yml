@@ -1,4 +1,4 @@
-name: panodepth_test
+name: pager
 channels:
   - pytorch
   - nvidia
@@ -30,3 +30,4 @@ dependencies:
       - lmdb==1.7.3 
       - trimesh==4.9.0
       - omegaconf==2.3.0
+      - tensorboard==2.20.0

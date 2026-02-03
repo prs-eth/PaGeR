@@ -5,7 +5,7 @@ from pathlib import Path
 from torch.utils.data import Dataset
 from src.utils.geometry_utils import roll_augment, erp_to_cubemap
 
-class Structured3D_ScannetPano(Dataset):
+class Structured3D_ScannetPP(Dataset):
     
     HEIGHT, WIDTH = 512, 1024
     def __init__(self, data_path, split, training=False, log_depth=False, data_augmentation=False, 
@@ -27,8 +27,8 @@ class Structured3D_ScannetPano(Dataset):
 
         self.fetch_Structured3D_paths(data_path / "Structured3D", self.split)
         
-        split_file_path = data_path / f"ScannetPano/splits/nvs_sem_{self.split}.txt"
-        self.fetch_ScannetPano_paths(data_path / "ScannetPano", split_file_path)
+        split_file_path = data_path / f"ScannetPP/splits/nvs_sem_{self.split}.txt"
+        self.fetch_ScannetPP_paths(data_path / "ScannetPP", split_file_path)
 
         if self.debug:
             self.rgb_path = self.rgb_path[:100]
@@ -66,7 +66,7 @@ class Structured3D_ScannetPano(Dataset):
                     self.depth_path.append(img_path.parent / "depth.png")
 
     
-    def fetch_ScannetPano_paths(self, data_path: Path, split_file_path: Path):
+    def fetch_ScannetPP_paths(self, data_path: Path, split_file_path: Path):
         with open(split_file_path, "r") as f:
             lines = f.readlines()
             for line in lines:

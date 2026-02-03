@@ -15,7 +15,7 @@ from dataloaders.PanoInfinigen_dataloader import PanoInfinigen
 from dataloaders.Matterport3D360_dataloader import Matterport3D360
 from dataloaders.Stanford2D3DS_dataloader import Stanford2D3DS
 from dataloaders.Structured3D_dataloader import Structured3D
-from dataloaders.ScannetPano_dataloader import ScannetPano
+from dataloaders.ScannetPP_dataloader import ScannetPP
 from src.metrics.depth_metrics import MetricTracker, align_pred_gt
 
 
@@ -32,7 +32,7 @@ def parse_args():
     parser.add_argument(
         "--dataset",
         type=str,
-        choices=["PanoInfinigen", "Matterport3D360", "Stanford2D3DS", "Structured3D", "ScannetPano"],
+        choices=["PanoInfinigen", "Matterport3D360", "Stanford2D3DS", "Structured3D", "Structured3D_ScannetPP"],
         help="Data source to use. 'PanoInfinigen' for the synthetic dataset."
     )
 
@@ -60,18 +60,6 @@ def parse_args():
         "--error_maps_saving_frequency",
         type=int,
         help="Frequency of saving error maps (in terms of batches)."
-    )
-
-    parser.add_argument(
-        "--save_error_list",
-        action="store_true",
-        help="Whether to save error list during evaluation."
-    )
-
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Enable debug mode."
     )
 
     return parser.parse_args()
@@ -108,10 +96,10 @@ def main():
     args = parse_args()
 
     dataset_cls = globals()[args.dataset]
-    test_ds = dataset_cls(data_path=Path(args.data_path), split="test", debug=args.debug)
+    test_ds = dataset_cls(data_path=Path(args.data_path), split="test")
     tracked_metrics = ["abs_relative_difference", "rmse_linear", "delta1_acc", "delta2_acc"]
     pred_path = Path(args.pred_path) / args.dataset
-    metrics = MetricTracker(tracked_metrics, args.save_error_list)
+    metrics = MetricTracker(tracked_metrics)
     eval_folder_name = "depth_evaluation"
 
     if args.alignment_type == 'metric':
@@ -149,28 +137,6 @@ def main():
         for metric, value in final_metrics_dict.items():
             f.write(f"{metric}: {value:.4f}\n")
     print(f"Saved evaluation metrics to {metrics_file_path}")
-
-    if args.save_error_list:
-        error_lists_dir = evaluation_dir / "error_lists"
-        error_lists_dir.mkdir(parents=True, exist_ok=True)
-        histograms_dir = evaluation_dir / "histograms"
-        histograms_dir.mkdir(parents=True, exist_ok=True)
-        for metric in error_list:
-            res_list = error_list[metric]
-            res_list.sort(key=lambda x: x[1])
-            with open(error_lists_dir / f"{metric}.txt", "w") as f:
-                for item in res_list:
-                    f.write(f"{item[0]}: {item[1]:.4f}\n")
-            
-            error_values = [item[1] for item in res_list]
-            plt.figure()
-            plt.hist(error_values, bins=50, color='blue')
-            plt.xlabel('Error Value')
-            plt.ylabel('Frequency')
-            plt.title(f'Histogram of {metric} Error Values')
-            plt.grid()
-            plt.savefig(histograms_dir / f"{metric}.png")
-            plt.close()
 
 if __name__ == "__main__":
     main()

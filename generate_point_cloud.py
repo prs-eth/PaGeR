@@ -55,12 +55,6 @@ def parse_args():
         help="Directory containing the results."
     )
 
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Enable debug mode."
-    )
-
     return parser.parse_args()
 
 
@@ -68,7 +62,7 @@ if __name__ == "__main__":
 
     args = parse_args()
     dataset_cls = globals()[args.dataset]
-    test_ds = dataset_cls(data_path=Path(args.data_path), split="test", debug=args.debug)
+    test_ds = dataset_cls(data_path=Path(args.data_path), split="test")
     test_dataloader = torch.utils.data.DataLoader(test_ds, batch_size=1, num_workers=1, 
                                         pin_memory=True, persistent_workers=True, prefetch_factor=1, shuffle=False)
     depth_path = Path(args.depth_path) / args.dataset

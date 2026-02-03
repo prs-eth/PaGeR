@@ -16,13 +16,18 @@ def args_to_omegaconf(args, base_cfg=None):
             if value is not None:
                 container[key] = value
 
-    for key in cfg.keys():
-        node = cfg[key]
-        if isinstance(node, DictConfig):
-            for subkey in node.keys():
-                _override_if_provided(node, subkey)
-        else:
-            _override_if_provided(cfg, key)
+    def _override_recursively(container):
+        if not isinstance(container, DictConfig):
+            return
+
+        for key in container.keys():
+            node = container[key]
+            if isinstance(node, DictConfig):
+                _override_recursively(node)
+            else:
+                _override_if_provided(container, key)
+
+    _override_recursively(cfg)
 
     return cfg
 

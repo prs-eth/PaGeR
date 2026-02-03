@@ -16,7 +16,7 @@ from dataloaders.PanoInfinigen_dataloader import PanoInfinigen
 from dataloaders.Matterport3D360_dataloader import Matterport3D360
 from dataloaders.Structured3D_dataloader import Structured3D
 from dataloaders.Stanford2D3DS_dataloader import Stanford2D3DS
-from dataloaders.ScannetPano_dataloader import ScannetPano
+from dataloaders.ScannetPP_dataloader import ScannetPP
 from dataloaders.Replica360_4K_dataloader import Replica360_4K
 from src.pager import Pager
 from src.utils.utils import args_to_omegaconf, convert_paths_to_pathlib, prepare_image_for_logging, log_images_mosaic
@@ -27,32 +27,18 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Inference script for panorama depth estimation using diffusion models.")
 
     parser.add_argument(
-        "--debug",
-        action="store_true", 
-        default=None,
-        help="Whether or not to use a small subset of the dataset. Useful for debugging."
-    )
-
-    parser.add_argument(
-        "--seed", 
-        type=int,
-        default=None,
-        help="A seed for reproducibility."
-    )
-
-    parser.add_argument(
         "--config",
         type=str,
         default=None,
+        help="Path to the YAML config file."
     )
 
     parser.add_argument(
         "--checkpoint_path",
         type=str,
         default=None,
-        help="UNet checkpoint to load.",
+        help="UNet checkpoint to load, either local path or HF repo ID."
     )
-
     parser.add_argument(
         "--enable_xformers", 
         action="store_true", 
@@ -72,7 +58,7 @@ def parse_args():
         type=str,
         default=None,
         choices=["PanoInfinigen", "PanoInTheWild", "Matterport3D360", "Stanford2D3DS", 
-                 "Structured3D", "ScannetPano", "Replica360_4K"],
+                 "Structured3D", "Structured3D_ScannetPP", "Replica360_4K"],
         help="Data source to use. 'PanoInfinigen' for the synthetic dataset."
     )
 
@@ -163,15 +149,13 @@ def main():
 
     dataset_cls = globals()[cfg.data.dataset]
     test_ds = dataset_cls(data_path=Path(cfg.data.data_path), split="test", scenes=cfg.data.scenes, 
-                          log_depth=cfg.model.log_scale, debug=cfg.debug)
+                          log_depth=cfg.model.log_scale)
     test_dataloader = torch.utils.data.DataLoader(test_ds, batch_size=1, num_workers=1, pin_memory=True, 
                                                   persistent_workers=True, prefetch_factor=1, shuffle=False)
 
     pager.prepare_cubemap_PE(test_ds.HEIGHT, test_ds.WIDTH)
     min_depth = test_ds.LOG_MIN_DEPTH if cfg.model.log_scale else test_ds.MIN_DEPTH
     depth_range = test_ds.LOG_DEPTH_RANGE if cfg.model.log_scale else test_ds.DEPTH_RANGE
-    
-
     progress_bar = tqdm(test_dataloader, desc=f"Test", total=len(test_dataloader))
     for i, batch in enumerate(progress_bar):
         with torch.inference_mode():

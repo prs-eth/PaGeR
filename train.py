@@ -28,8 +28,8 @@ from dataloaders.Structured3D_dataloader import Structured3D
 from dataloaders.Matterport3D360_dataloader import Matterport3D360
 from dataloaders.PanoInfinigen_dataloader import PanoInfinigen
 from dataloaders.Stanford2D3DS_dataloader import Stanford2D3DS
-from dataloaders.ScannetPano_dataloader import ScannetPano
-from dataloaders.Structured3D_ScannetPano_dataloader import Structured3D_ScannetPano
+from dataloaders.ScannetPP_dataloader import ScannetPP
+from dataloaders.Structured3D_ScannetPP_dataloader import Structured3D_ScannetPP
 
 from src.pager import Pager
 from src.utils.lr_scheduler import IterConstant, IterExponential
@@ -184,7 +184,7 @@ def parse_args():
         "--dataset",
         type=str,
         default=None,
-        choices=["PanoInfinigen", "Matterport3D360", "Structured3D", "ScannetPano", "Structured3D_ScannetPano"],
+        choices=["PanoInfinigen", "Matterport3D360", "Structured3D", "ScannetPP", "Structured3D_ScannetPP"],
         help="Dataset to use for training."
     )
 
@@ -340,7 +340,7 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--wandb_run_name",
+        "--run_name",
         type=str,
         default=None,
         help="Name for the wandb run."

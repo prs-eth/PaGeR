@@ -38,12 +38,6 @@ def parse_args():
         help="Directory containing the results."
     )
 
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Enable debug mode."
-    )
-
     return parser.parse_args()
 
 
@@ -52,7 +46,7 @@ def main():
     args = parse_args()
 
     dataset_cls = globals()[args.dataset]
-    test_ds = dataset_cls(data_path=Path(args.data_path), split="test", debug=args.debug)
+    test_ds = dataset_cls(data_path=Path(args.data_path), split="test")
     tracked_metrics = ["mean", "median", "mse", "delta_5", "delta_7.5", "delta_11.25", "delta_22.5", "delta_30"]
     pred_path = Path(args.pred_path) / args.dataset
     metrics = MetricTracker(tracked_metrics)

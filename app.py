@@ -30,13 +30,6 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Inference script for panorama depth estimation using diffusion models.")
 
     parser.add_argument(
-        "--seed", 
-        type=int, 
-        default=42, 
-        help="A seed for reproducibility."
-    )
-
-    parser.add_argument(
         "--depth_checkpoint_path",
         default="prs-eth/PaGeR-depth",
         type=str,
@@ -71,6 +64,9 @@ def generate_ERP(input_rgb, modality):
     input_rgb = input_rgb * 2.0 - 1.0
     batch['rgb_cubemap'] = erp_to_cubemap(input_rgb).unsqueeze(0).to(device)
     with torch.inference_mode():
+        torch.cuda.reset_peak_memory_stats()
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
         pred_cubemap = pager(batch, modality)
         if modality == "depth": 
             pred, pred_image = pager.process_depth_output(pred_cubemap, orig_size=(1024, 2048), 
@@ -164,6 +160,7 @@ try:
         filename="config.yaml"
     )
 except Exception as e:
+    print("loading from local path")
     depth_checkpoint_config_path = Path(args.depth_checkpoint_path) / "config.yaml"
 depth_config = OmegaConf.load(depth_checkpoint_config_path)
 checkpoint_config["depth"] = {"path": args.depth_checkpoint_path, "mode": "trained", "config": depth_config.model}
