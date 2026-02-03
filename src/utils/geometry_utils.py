@@ -32,19 +32,19 @@ def roll_augment(data, shift_x):
     return data_rolled
 
 
-def roll_normal(normal, shift_x):
-    if normal.ndim == 2:
-        normal = normal[:, :, np.newaxis]
+def roll_normals(normals, shift_x):
+    if normals.ndim == 2:
+        normals = normals[:, :, np.newaxis]
         originally_2d = True
     else:
         originally_2d = False
-    if normal.ndim == 3 and normal.shape[0] != 3:
-        normal = np.moveaxis(normal, -1, 0)
+    if normals.ndim == 3 and normals.shape[0] != 3:
+        normals = np.moveaxis(normals, -1, 0)
         moved_axis = True
     else:
         moved_axis = False
 
-    _, H, W = normal.shape
+    _, H, W = normals.shape
 
     angle = - 2.0 * np.pi * (shift_x / float(W))
     cos_a, sin_a = np.cos(angle), np.sin(angle)
@@ -52,18 +52,17 @@ def roll_normal(normal, shift_x):
         [ cos_a, 0.0, -sin_a],
         [ 0.0,   1.0,  0.0  ],
         [ sin_a, 0.0,  cos_a]
-    ], dtype=normal.dtype)
+    ], dtype=normals.dtype)
 
-    n_flat = normal.reshape(3, -1)
-    normal = (R @ n_flat).reshape(3, H, W)
+    n_flat = normals.reshape(3, -1)
+    normals = (R @ n_flat).reshape(3, H, W)
 
     if moved_axis:
-        normal = np.moveaxis(normal, 0, -1)
+        normals = np.moveaxis(normals, 0, -1)
 
     if originally_2d:
-        normal = normal[:, :, 0]
-    return normal
-
+        normals = normals[:, :, 0]
+    return normals
 
 def compute_scale_and_shift(pred_g, targ_g, mask_g = None, eps = 0.0, fit_shift = True):
     if mask_g is None:

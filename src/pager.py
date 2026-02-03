@@ -7,7 +7,7 @@ from diffusers.utils.import_utils import is_xformers_available
 from Marigold.unet.unet_2d_condition import UNet2DConditionModel
 from Marigold.vae.autoencoder_kl import AutoencoderKL
 from src.utils.conv_padding import PaddedConv2d, valid_pad_conv_fn
-from src.utils.loss import L1Loss, GradL1Loss, CosineNormalLoss
+from src.utils.loss import L1Loss, GradL1Loss, CosineNormalsLoss
 from src.utils.geometry_utils import (
     get_positional_encoding,
       compute_scale_and_shift,
@@ -91,8 +91,8 @@ class Pager(nn.Module):
                 import xformers
                 if self.unet.get("depth"):
                     self.unet["depth"].enable_xformers_memory_efficient_attention()
-                if self.unet.get("normal"):
-                    self.unet["normal"].enable_xformers_memory_efficient_attention()
+                if self.unet.get("normals"):
+                    self.unet["normals"].enable_xformers_memory_efficient_attention()
                 self.vae.enable_xformers_memory_efficient_attention()
             else:
                 print("xFormers is not available. Proceeding without it.")
@@ -177,10 +177,10 @@ class Pager(nn.Module):
             if loss_cfg.grad_loss_weight > 0.0:
                 self.losses_dict["grad_loss"] = {"loss_fn": GradL1Loss(), "weight": loss_cfg.grad_loss_weight}
             if loss_cfg.normals_consistency_loss_weight > 0.0:
-                self.losses_dict["normals_consistency_loss"] = {"loss_fn": CosineNormalLoss(), 
+                self.losses_dict["normals_consistency_loss"] = {"loss_fn": CosineNormalsLoss(), 
                                                                 "weight": loss_cfg.normals_consistency_loss_weight}
         else:
-            self.losses_dict["cosine_normal_loss"] = {"loss_fn": CosineNormalLoss(), "weight": 1.0} 
+            self.losses_dict["cosine_normals_loss"] = {"loss_fn": CosineNormalsLoss(), "weight": 1.0} 
 
 
     def calculate_depth_loss(self, batch, pred_cubemap, min_depth, depth_range, log_scale, metric_depth):
@@ -202,7 +202,7 @@ class Pager(nn.Module):
 
         for loss_name, loss_params in self.losses_dict.items():
             if loss_name == "normals_consistency_loss":
-                gt = batch['normal']
+                gt = batch['normals']
                 pred_depth = pred_cubemap
                 mask = batch["mask"]
                 pred_depth = self.process_depth_output(pred_depth, orig_size=gt.shape[2:], min_depth=min_depth, 
@@ -218,15 +218,15 @@ class Pager(nn.Module):
         return loss
 
 
-    def calculate_normal_loss(self, batch, pred_cubemap):
+    def calculate_normals_loss(self, batch, pred_cubemap):
         loss = {"total_loss": 0.0}
 
-        gt_normal_cubemap =  batch['normal_cubemap'].squeeze(0)
+        gt_normals_cubemap =  batch['normals_cubemap'].squeeze(0)
         mask_cubemap = batch["mask_cubemap"].squeeze(0)
 
         for loss_name, loss_params in self.losses_dict.items():
             pred = pred_cubemap
-            gt = gt_normal_cubemap
+            gt = gt_normals_cubemap
             loss[loss_name] = loss_params["loss_fn"](pred, gt, mask_cubemap)
             loss["total_loss"] += loss[loss_name] * loss_params["weight"]
 
@@ -248,7 +248,7 @@ class Pager(nn.Module):
         return pred_panorama, pred_panorama_viz
 
 
-    def process_normal_output(self,pred_cubemap, orig_size):
+    def process_normals_output(self,pred_cubemap, orig_size):
         pred_panorama = cubemap_to_erp(pred_cubemap, *orig_size)
         pred_panorama = torch.clamp(pred_panorama, -1, 1)
         return pred_panorama

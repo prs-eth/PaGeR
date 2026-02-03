@@ -173,8 +173,8 @@ def main():
                 pred_image = prepare_image_for_logging(pred_image)
                 pred_image = cmap(pred_image[0,...]/255.0)
                 pred_image = (pred_image[..., :3] * 255).astype(np.uint8)
-            elif cfg.model.modality == "normal":
-                pred = pager.process_normal_output(pred_cubemap, orig_size=(dataset_cls.HEIGHT, dataset_cls.WIDTH))
+            elif cfg.model.modality == "normals":
+                pred = pager.process_normals_output(pred_cubemap, orig_size=(dataset_cls.HEIGHT, dataset_cls.WIDTH))
                 pred = pred.cpu().numpy()
                 pred_image = pred.copy()
                 pred_image = prepare_image_for_logging(pred_image).transpose(1,2,0)

@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 from pathlib import Path
 from torch.utils.data import Dataset
-from src.utils.geometry_utils import roll_augment, roll_normal, erp_to_cubemap
+from src.utils.geometry_utils import roll_augment, roll_normals, erp_to_cubemap
 
 class Structured3D(Dataset):
     HEIGHT, WIDTH = 512, 1024
@@ -17,7 +17,7 @@ class Structured3D(Dataset):
         self.debug = debug
         self.rgb_path = []
         self.depth_path = []
-        self.normal_path = []
+        self.normals_path = []
         tiny_val = False
 
         if self.split == "tiny_val":
@@ -29,18 +29,17 @@ class Structured3D(Dataset):
         if self.debug:
             self.rgb_path = self.rgb_path[:100]
             self.depth_path = self.depth_path[:100]
-            self.normal_path = self.normal_path[:100]
+            self.normals_path = self.normals_path[:100]
 
         if tiny_val:
             if self.debug:
                 self.rgb_path = self.rgb_path[::5]
                 self.depth_path = self.depth_path[::5]
-                self.normal_path = self.normal_path[::5]
+                self.normals_path = self.normals_path[::5]
             else:
                 self.rgb_path = self.rgb_path[::50]
                 self.depth_path = self.depth_path[::50]
-                self.normal_path = self.normal_path[::50]
-
+                self.normals_path = self.normals_path[::50]
         self.set_depth_ranges()
 
 
@@ -60,10 +59,10 @@ class Structured3D(Dataset):
                 continue
 
             for img_path in scene_dir.glob("*/panorama/full/rgb_rawlight.png"):
-                if (img_path.parent / "depth.png").exists() and (img_path.parent / "normal.png").exists():
+                if (img_path.parent / "depth.png").exists() and (img_path.parent / "normals.png").exists():
                     self.rgb_path.append(img_path)
                     self.depth_path.append(img_path.parent / "depth.png")
-                    self.normal_path.append(img_path.parent / "normal.png")
+                    self.normals_path.append(img_path.parent / "normals.png")
 
 
     def set_depth_ranges(self):
@@ -109,13 +108,13 @@ class Structured3D(Dataset):
         return depth_tensor, depth_cubemap_tensor, mask_tensor, mask_cubemap_tensor
 
 
-    def process_normal(self, normal_np: np.ndarray, shift_ratio=0.0):
-        normal_np = normal_np.astype(np.float32)
-        normal_np = roll_augment(normal_np, shift_ratio * self.WIDTH)
-        normal_np = roll_normal(normal_np, shift_ratio * self.WIDTH)
-        normal_tensor = torch.from_numpy(normal_np).permute(2, 0, 1)
-        normal_cubemap_tensor = erp_to_cubemap(normal_tensor)
-        return normal_tensor, normal_cubemap_tensor
+    def process_normal(self, normals_np: np.ndarray, shift_ratio=0.0):
+        normals_np = normals_np.astype(np.float32)
+        normals_np = roll_augment(normals_np, shift_ratio * self.WIDTH)
+        normals_np = roll_normal(normals_np, shift_ratio * self.WIDTH)
+        normals_tensor = torch.from_numpy(normals_np).permute(2, 0, 1)
+        normals_cubemap_tensor = erp_to_cubemap(normals_tensor)
+        return normals_tensor, normals_cubemap_tensor
     
 
     def __len__(self):
@@ -125,14 +124,14 @@ class Structured3D(Dataset):
     def __getitem__(self, idx):
         rgb_path = self.rgb_path[idx]
         depth_path = self.depth_path[idx]
-        normal_path = self.normal_path[idx]
+        normals_path = self.normals_path[idx]
         try:
             rgb_image = Image.open(rgb_path).convert("RGB")
             depth_image = Image.open(depth_path)
             depth = np.array(depth_image) / 1000.0
 
-            normal_image = Image.open(normal_path)
-            normal = np.array(normal_image) / 128.0 - 1.0
+            normals_image = Image.open(normals_path)
+            normals = np.array(normals_image) / 128.0 - 1.0
 
             if self.data_augmentation:
                 shift_ratio = np.random.uniform(0, 1)
@@ -141,7 +140,7 @@ class Structured3D(Dataset):
 
             rgb_tensor, rgb_cubemap_tensor = self.process_rgb(rgb_image, shift_ratio)
             depth_tensor, depth_cubemap_tensor, mask_tensor, mask_cubemap_tensor = self.process_depth(depth, shift_ratio)
-            normal_tensor, normal_cubemap_tensor = self.process_normal(normal, shift_ratio)
+            normals_tensor, normals_cubemap_tensor = self.process_normal(normals, shift_ratio)
 
             id = rgb_path.parts[6]+ "_" + rgb_path.parts[8]
 
@@ -154,8 +153,8 @@ class Structured3D(Dataset):
             depth_cubemap_tensor = torch.zeros(6, 3, self.HEIGHT//2, self.WIDTH//2)
             mask_tensor = torch.zeros(1, self.HEIGHT, self.WIDTH).bool()
             mask_cubemap_tensor = torch.zeros(6, 1, self.HEIGHT//2, self.WIDTH//2).bool()
-            normal_tensor = torch.zeros(3, self.HEIGHT, self.WIDTH)
-            normal_cubemap_tensor = torch.zeros(6, 3, self.HEIGHT//2, self.WIDTH//2)
+            normals_tensor = torch.zeros(3, self.HEIGHT, self.WIDTH)
+            normals_cubemap_tensor = torch.zeros(6, 3, self.HEIGHT//2, self.WIDTH//2)
         return {
             "id": id,
             "rgb": rgb_tensor,
@@ -164,6 +163,6 @@ class Structured3D(Dataset):
             "mask": mask_tensor,
             "depth_cubemap": depth_cubemap_tensor,
             "mask_cubemap": mask_cubemap_tensor,
-            "normal": normal_tensor,
-            "normal_cubemap": normal_cubemap_tensor
+            "normals": normals_tensor,
+            "normals_cubemap": normals_cubemap_tensor
         }

@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from dataloaders.PanoInfinigen_dataloader import PanoInfinigen
 from dataloaders.Structured3D_dataloader import Structured3D
 from dataloaders.Replica360_4K_dataloader import Replica360_4K
-from src.metrics.edge_metrics import MetricTracker
+from src.metrics.edges_metrics import MetricTracker
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

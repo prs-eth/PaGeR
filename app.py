@@ -78,8 +78,8 @@ def generate_ERP(input_rgb, modality):
             pred_image = prepare_image_for_logging(pred_image)
             pred_image = cmap(pred_image[0,...]/255.0)
             pred_image = (pred_image[..., :3] * 255).astype(np.uint8)
-        elif modality == "normal":
-            pred = pager.process_normal_output(pred_cubemap, orig_size=(1024, 2048))
+        elif modality == "normals":
+            pred = pager.process_normals_output(pred_cubemap, orig_size=(1024, 2048))
             pred = pred.cpu().numpy()
             pred_image = pred.copy()
             pred_image = prepare_image_for_logging(pred_image).transpose(1,2,0)
@@ -90,9 +90,9 @@ def process_panorama(image_path, output_type, include_pointcloud):
     loaded_image = Image.open(image_path).convert("RGB").resize((2048, 1024))
     input_rgb = np.array(loaded_image)
 
-    modality = "depth" if output_type.lower() == "depth" else "normal"
+    modality = "depth" if output_type.lower() == "depth" else "normals"
     is_depth = modality == "depth"
-    main_label = "Depth Output" if is_depth else "Surface Normal Output"
+    main_label = "Depth Output" if is_depth else "Surface Normals Output"
     pc_label = (
         "RGB-colored Point Cloud" if is_depth else "Surface Normals-Colored Point Cloud"
     )
@@ -166,20 +166,20 @@ depth_config = OmegaConf.load(depth_checkpoint_config_path)
 checkpoint_config["depth"] = {"path": args.depth_checkpoint_path, "mode": "trained", "config": depth_config.model}
 
 try:
-    normal_checkpoint_config_path = hf_hub_download(
+    normals_checkpoint_config_path = hf_hub_download(
         repo_id=args.normals_checkpoint_path,
         filename="config.yaml"
     )
 except Exception as e:
-    normal_checkpoint_config_path = Path(args.normals_checkpoint_path) / "config.yaml"
-normal_config = OmegaConf.load(normal_checkpoint_config_path)
-checkpoint_config["normal"] = {"path": args.normals_checkpoint_path, "mode": "trained", "config": normal_config.model}
+    normals_checkpoint_config_path = Path(args.normals_checkpoint_path) / "config.yaml"
+normals_config = OmegaConf.load(normals_checkpoint_config_path)
+checkpoint_config["normals"] = {"path": args.normals_checkpoint_path, "mode": "trained", "config": normals_config.model}
 
 pager = Pager(model_configs=checkpoint_config, pretrained_path = depth_config.model.pretrained_path, device=device)
 pager.unet["depth"].to(device, dtype=pager.weight_dtype)
 pager.unet["depth"].eval()
-pager.unet["normal"].to(device, dtype=pager.weight_dtype)
-pager.unet["normal"].eval()
+pager.unet["normals"].to(device, dtype=pager.weight_dtype)
+pager.unet["normals"].eval()
 
 
 with gr.Blocks() as demo:

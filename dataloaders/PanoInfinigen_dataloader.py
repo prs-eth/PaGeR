@@ -6,7 +6,7 @@ from PIL import Image
 from pathlib import Path
 from typing import List, Tuple
 from torch.utils.data import Dataset
-from src.utils.geometry_utils import roll_augment, roll_normal, erp_to_cubemap
+from src.utils.geometry_utils import roll_augment, roll_normals, erp_to_cubemap
 
 class PanoInfinigen(Dataset):
     HEIGHT, WIDTH = 2160, 3840
@@ -115,22 +115,22 @@ class PanoInfinigen(Dataset):
         depth_cubemap_tensor = depth_cubemap_tensor.repeat(1, 3, 1, 1)
         return depth_tensor, depth_cubemap_tensor, mask_tensor, mask_cubemap_tensor
 
-    def process_normal(self, normal_np: np.ndarray, shift_ratio=0.0):
-        normal_np = normal_np.astype(np.float32)
-        normal_np = roll_augment(normal_np, shift_ratio * self.WIDTH)
-        normal_np = roll_normal(normal_np, shift_ratio * self.WIDTH)
-        normal_tensor = torch.from_numpy(normal_np).permute(2, 0, 1)
-        normal_cubemap_tensor = erp_to_cubemap(normal_tensor)
-        return normal_tensor, normal_cubemap_tensor
+    def process_normals(self, normals_np: np.ndarray, shift_ratio=0.0):
+        normals_np = normals_np.astype(np.float32)
+        normals_np = roll_augment(normals_np, shift_ratio * self.WIDTH)
+        normals_np = roll_normals(normals_np, shift_ratio * self.WIDTH)
+        normals_tensor = torch.from_numpy(normals_np).permute(2, 0, 1)
+        normals_cubemap_tensor = erp_to_cubemap(normals_tensor)
+        return normals_tensor, normals_cubemap_tensor
     
-    def build_sample(self, rgb_img_pil, depth_np, normal_np):
+    def build_sample(self, rgb_img_pil, depth_np, normals_np):
         if self.data_augmentation:
             shift_ratio = np.random.uniform(0, 1)
         else:
             shift_ratio = 0
         rgb_tensor, rgb_cubemap_tensor = self.process_rgb(rgb_img_pil, shift_ratio)
         depth_tensor, depth_cubemap_tensor, mask_tensor, mask_cubemap_tensor = self.process_depth(depth_np, shift_ratio)
-        normal_tensor, normal_cubemap_tensor = self.process_normal(normal_np, shift_ratio)
+        normals_tensor, normals_cubemap_tensor = self.process_normals(normals_np, shift_ratio)
         return {
             "rgb": rgb_tensor,
             "rgb_cubemap": rgb_cubemap_tensor,
@@ -138,8 +138,8 @@ class PanoInfinigen(Dataset):
             "mask": mask_tensor,
             "depth_cubemap": depth_cubemap_tensor,
             "mask_cubemap": mask_cubemap_tensor,
-            "normal": normal_tensor,
-            "normal_cubemap": normal_cubemap_tensor,
+            "normals": normals_tensor,
+            "normals_cubemap": normals_cubemap_tensor,
         }
 
     def _get_env(self, root: Path, shard_idx: int):
@@ -160,19 +160,19 @@ class PanoInfinigen(Dataset):
         with env.begin() as txn:
             rgb_bytes    = txn.get(f"{key_base}#rgb".encode())
             depth_bytes  = txn.get(f"{key_base}#depth".encode())
-            normal_bytes = txn.get(f"{key_base}#normal".encode())
-            if rgb_bytes is None or depth_bytes is None or normal_bytes is None:
+            normals_bytes = txn.get(f"{key_base}#normal".encode())
+            if rgb_bytes is None or depth_bytes is None or normals_bytes is None:
                 raise KeyError(f"Missing keys for {key_base}")
             rgb_img  = Image.open(io.BytesIO(rgb_bytes)).convert("RGB")
             depth_np = np.load(io.BytesIO(depth_bytes), allow_pickle=False)
-            normal_np= np.load(io.BytesIO(normal_bytes), allow_pickle=False)
-        return rgb_img, depth_np, normal_np
+            normals_np= np.load(io.BytesIO(normals_bytes), allow_pickle=False)
+        return rgb_img, depth_np, normals_np
 
     def __getitem__(self, i: int):
         root, shard_idx, scene_id, view_idx = self._index[i]
         env = self._get_env(root, shard_idx)
-        rgb_img, depth_np, normal_np = self._load_view(env, scene_id, view_idx)
-        sample = self.build_sample(rgb_img, depth_np, normal_np)
+        rgb_img, depth_np, normals_np = self._load_view(env, scene_id, view_idx)
+        sample = self.build_sample(rgb_img, depth_np, normals_np)
 
         unique_id = f"{root.name}_shard{shard_idx:05d}_{scene_id}_view{view_idx:04d}"
         sample["id"] = unique_id

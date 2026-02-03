@@ -11,7 +11,7 @@ training:
   use_EMA: true
 
 model:
-  modality: depth               # depth | normal
+  modality: depth               # depth | normals
   pretrained_path: GonzaloMG/marigold-e2e-ft-depth
   checkpoint_path: null
   enable_xformers: true

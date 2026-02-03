@@ -12,13 +12,13 @@ from tqdm.auto import tqdm
 
 from dataloaders.PanoInfinigen_dataloader import PanoInfinigen
 from dataloaders.Structured3D_dataloader import Structured3D
-from src.metrics.normal_metrics import MetricTracker
+from src.metrics.normals_metrics import MetricTracker
 from src.utils.geometry_utils import unit_normals
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Normal evaluation script for panorama normal estimation.")
+    parser = argparse.ArgumentParser(description="Normals evaluation script for panorama normals estimation.")
     parser.add_argument(
         "--data_path",
         type=str,
@@ -50,7 +50,7 @@ def main():
     tracked_metrics = ["mean", "median", "mse", "delta_5", "delta_7.5", "delta_11.25", "delta_22.5", "delta_30"]
     pred_path = Path(args.pred_path) / args.dataset
     metrics = MetricTracker(tracked_metrics)
-    eval_folder_name = "normal_evaluation"
+    eval_folder_name = "normals_evaluation"
 
     evaluation_dir = Path(pred_path) / eval_folder_name
     evaluation_dir.mkdir(parents=True, exist_ok=True)
@@ -67,7 +67,7 @@ def main():
         except:
             print(f"Could not load prediction for {file_name}, skipping.")
             continue
-        gt = batch["normal"].to(device)
+        gt = batch["normals"].to(device)
         mask = batch["mask"].to(device)
         pred = unit_normals(pred)
         gt = unit_normals(gt)

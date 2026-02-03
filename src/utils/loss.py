@@ -45,10 +45,10 @@ class GradL1Loss(nn.Module):
         return 0.5 * (loss_x + loss_y)
 
 
-class CosineNormalLoss(nn.Module):
+class CosineNormalsLoss(nn.Module):
     def __init__(self):
         super().__init__()
-        self.name = "CosineNormalLoss"
+        self.name = "CosineNormalsLoss"
 
     def forward(self, pred: torch.Tensor,
                       target: torch.Tensor,

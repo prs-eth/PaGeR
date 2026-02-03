@@ -52,7 +52,7 @@ logger = get_logger(__name__, log_level="INFO")
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Training code for panorama depth and normal estimation models.")
+    parser = argparse.ArgumentParser(description="Training code for panorama depth and normals estimation models.")
     parser.add_argument(
         "--config",
         type=str,
@@ -112,7 +112,7 @@ def parse_args():
         "--modality",
         type=str,
         default=None,
-        choices=["depth", "normal"],
+        choices=["depth", "normals"],
         help="Modality to use for training.",
     )
 
@@ -603,7 +603,7 @@ def main():
                 if cfg.model.modality == "depth":
                     loss = pager.calculate_depth_loss(batch, pred_cubemap, min_depth, depth_range, cfg.model.log_scale, cfg.model.metric_depth)
                 else:
-                    loss = pager.calculate_normal_loss(batch, pred_cubemap)
+                    loss = pager.calculate_normals_loss(batch, pred_cubemap)
                 accelerator.backward(loss["total_loss"])
                 avg_loss = accelerator.reduce(loss["total_loss"].detach(), reduction="mean") / cfg.training.gradient_accumulation_steps
                 if accelerator.is_main_process:
@@ -649,9 +649,9 @@ def main():
                                         log_scale=cfg.model.log_scale,
                                     )[1].cpu().numpy()
                                 else:
-                                    result_image = pager.process_normal_output(
+                                    result_image = pager.process_normals_output(
                                         pred_cubemap,
-                                        orig_size=batch["normal"].shape[2:4],
+                                        orig_size=batch["normals"].shape[2:4],
                                     ).cpu().numpy()
                                 log_train_images[cfg.model.modality].append(
                                     prepare_image_for_logging(result_image)

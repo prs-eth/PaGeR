@@ -7,7 +7,7 @@ class MetricTracker:
         self.metrics_sum = {metric: 0.0 for metric in tracked_metrics}
 
 
-    def compute_normal_metrics(gt, pred, mask, radians, full_region):
+    def compute_normals_metrics(gt, pred, mask, radians, full_region):
         dot_products = np.sum(pred * gt, axis=3, keepdims=True)
         angle_radians = np.arccos(np.clip(dot_products, -1.0, 1.0))
 

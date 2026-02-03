@@ -17,7 +17,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="The generation script for point clouds from panorama depth and normal predictions.")
+    parser = argparse.ArgumentParser(description="The generation script for point clouds from panorama depth and normals predictions.")
     parser.add_argument(
         "--data_path",
         type=str,
@@ -37,7 +37,7 @@ def parse_args():
         "--color_modality",
         type=str,
         default="rgb",
-        choices=["rgb", "normal"],
+        choices=["rgb", "normals"],
         help="What data modality to use for coloring the point cloud."
     )
 
@@ -49,7 +49,7 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--normal_path",
+        "--normals_path",
         type=str,
         default="data",
         help="Directory containing the results."
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     test_dataloader = torch.utils.data.DataLoader(test_ds, batch_size=1, num_workers=1, 
                                         pin_memory=True, persistent_workers=True, prefetch_factor=1, shuffle=False)
     depth_path = Path(args.depth_path) / args.dataset
-    normal_path = Path(args.normal_path) / args.dataset
+    normals_path = Path(args.normals_path) / args.dataset
     save_dir = depth_path / f"{args.color_modality}_point_clouds"
     save_dir.mkdir(parents=True, exist_ok=True)
     progress_bar = tqdm(test_dataloader, desc="Generating Point Cloud")
@@ -89,11 +89,11 @@ if __name__ == "__main__":
         if args.color_modality == "rgb":
             color = rgb
         else:
-            normal_file_path = normal_path / "eval" / file_name
+            normals_file_path = normals_path / "eval" / file_name
             try:
-                color = np.load(normal_file_path)['arr_0'].transpose(1,2,0)
+                color = np.load(normals_file_path)['arr_0'].transpose(1,2,0)
             except:
-                print(f"Could not load normal prediction for {file_name}, skipping.")
+                print(f"Could not load normals prediction for {file_name}, skipping.")
                 continue
 
         edge_filtered_mask = compute_edge_mask(

@@ -115,8 +115,8 @@ def validation_loop(accelerator, dataloader, pager, ema_unet, cfg, epoch, global
             min_depth = dataloader.dataset.LOG_MIN_DEPTH if cfg.model.log_scale else dataloader.dataset.MIN_DEPTH
             depth_range = dataloader.dataset.LOG_DEPTH_RANGE if cfg.model.log_scale else dataloader.dataset.DEPTH_RANGE
             loss = pager.calculate_depth_loss(batch, pred_cubemap, min_depth, depth_range, cfg.model.log_scale, cfg.model.metric_depth)
-        elif cfg.model.modality == "normal":
-            loss = pager.calculate_normal_loss(batch, pred_cubemap)
+        elif cfg.model.modality == "normals":
+            loss = pager.calculate_normals_loss(batch, pred_cubemap)
 
         avg_loss = accelerator.reduce(loss["total_loss"].detach(), reduction="mean")
         if accelerator.is_main_process:
@@ -127,8 +127,8 @@ def validation_loop(accelerator, dataloader, pager, ema_unet, cfg, epoch, global
             if cfg.model.modality == "depth":
                 result_image = pager.process_depth_output(pred_cubemap, orig_size=batch['depth'].shape[2:4], min_depth=min_depth, 
                                                           depth_range=depth_range, log_scale=cfg.model.log_scale)[1].cpu().numpy()
-            elif cfg.model.modality == "normal":
-                result_image = pager.process_normal_output(pred_cubemap, orig_size=batch['normal'].shape[2:4]).cpu().numpy()
+            elif cfg.model.modality == "normals":
+                result_image = pager.process_normals_output(pred_cubemap, orig_size=batch['normals'].shape[2:4]).cpu().numpy()
             log_val_images[cfg.model.modality].append(prepare_image_for_logging(result_image))
 
     val_epoch_loss = val_epoch_loss / len(dataloader)

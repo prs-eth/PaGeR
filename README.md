@@ -145,11 +145,11 @@ python evaluation/depth_evaluation.py \
     --save_error_maps
 ```
 
-Evaluation of the surface normal estimation could be done, similar to the [PanoNormal](https://arxiv.org/html/2405.18745v1) paper, by running the following command:
+Evaluation of the surface normals estimation could be done, similar to the [PanoNormal](https://arxiv.org/html/2405.18745v1) paper, by running the following command:
 
 ```bash
 # Normals
-python evaluation/normal_estimation.py \
+python evaluation/normals_estimation.py \
     --pred_path "path/to/preds/folder" \
     --data_path "path/to/dataset" \
     --dataset "dataset-choice" \

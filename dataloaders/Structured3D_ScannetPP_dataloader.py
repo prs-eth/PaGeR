@@ -18,7 +18,7 @@ class Structured3D_ScannetPP(Dataset):
         self.debug = debug
         self.rgb_path = []
         self.depth_path = []
-        self.normal_path = []
+        self.normals_path = []
         tiny_val = False
 
         if self.split == "tiny_val":
