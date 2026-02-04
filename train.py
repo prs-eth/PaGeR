@@ -9,7 +9,7 @@ import math
 
 import datasets
 import torch
-
+import numpy as np
 import transformers
 from accelerate import Accelerator
 from accelerate.logging import get_logger
@@ -23,6 +23,7 @@ from diffusers.utils import check_min_version, is_wandb_available
 from pathlib import Path
 from omegaconf import OmegaConf
 from datetime import datetime
+import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import LambdaLR
 from dataloaders.Structured3D_dataloader import Structured3D
 from dataloaders.Matterport3D360_dataloader import Matterport3D360
@@ -410,6 +411,7 @@ def main():
         datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO,
     )
+    cmap = plt.get_cmap("Spectral")
     logger.info(accelerator.state, main_process_only=False)
     if args.resume_path:
         logger.info("resume_path found in CLI, the original config will be overriden by the config file in the training checkpoint, "
@@ -648,13 +650,18 @@ def main():
                                         depth_range=depth_range,
                                         log_scale=cfg.model.log_scale,
                                     )[1].cpu().numpy()
+                                    result_image=prepare_image_for_logging(result_image)
+                                    result_image = cmap(result_image / 255.0)
+                                    result_image = (result_image[..., :3] * 255)[0].astype(np.uint8)
+                                    result_image = np.transpose(result_image, (2, 0, 1))
                                 else:
                                     result_image = pager.process_normals_output(
                                         pred_cubemap,
                                         orig_size=batch["normals"].shape[2:4],
                                     ).cpu().numpy()
+                                    result_image = prepare_image_for_logging(result_image)
                                 log_train_images[cfg.model.modality].append(
-                                    prepare_image_for_logging(result_image)
+                                    result_image
                                 )
 
                         if global_step % cfg.logging.img_report_frequency == 0:
@@ -696,7 +703,7 @@ def main():
                     if cfg.validation.run_tiny_validation and global_step > 0 and global_step % cfg.validation.tiny_val_frequency == 0:
                         pager.trained_unet.eval()
                         tiny_val_loss = validation_loop(accelerator, tiny_val_dataloader, pager, ema_unet, 
-                                                        cfg, epoch, global_step, val_type="tiny_val")
+                                                        cfg, epoch, global_step, cmap, val_type="tiny_val")
                         if accelerator.is_main_process:
                             logger.info(f"Step {global_step} Tiny Validation loss: {tiny_val_loss: .4f}")
                             accelerator.log({"global_step": global_step, "tiny_val/loss": tiny_val_loss}, step=global_step)
@@ -711,7 +718,7 @@ def main():
         if cfg.validation.run_validation:
             pager.trained_unet.eval()
             val_epoch_loss = validation_loop(accelerator, val_dataloader, pager, ema_unet, 
-                                             cfg, epoch, global_step, val_type="val")
+                                             cfg, epoch, global_step, cmap, val_type="val")
             accelerator.wait_for_everyone()
             if accelerator.is_main_process and val_epoch_loss < best_val_loss:
                 best_val_loss = val_epoch_loss

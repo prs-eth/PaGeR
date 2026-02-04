@@ -91,7 +91,7 @@ def prepare_trained_parameters(unet, cfg):
 
 
 @torch.no_grad()
-def validation_loop(accelerator, dataloader, pager, ema_unet, cfg, epoch, global_step, val_type="val"):
+def validation_loop(accelerator, dataloader, pager, ema_unet, cfg, epoch, global_step, cmap, val_type="val"):
     if val_type == "val":
         desc = "Validation"
         x_axis_name = "epoch"
@@ -127,9 +127,14 @@ def validation_loop(accelerator, dataloader, pager, ema_unet, cfg, epoch, global
             if cfg.model.modality == "depth":
                 result_image = pager.process_depth_output(pred_cubemap, orig_size=batch['depth'].shape[2:4], min_depth=min_depth, 
                                                           depth_range=depth_range, log_scale=cfg.model.log_scale)[1].cpu().numpy()
+                result_image = prepare_image_for_logging(result_image)
+                result_image = cmap(result_image / 255.0)
+                result_image = (result_image[..., :3] * 255)[0].astype(np.uint8)
+                result_image = np.transpose(result_image, (2, 0, 1))
             elif cfg.model.modality == "normals":
                 result_image = pager.process_normals_output(pred_cubemap, orig_size=batch['normals'].shape[2:4]).cpu().numpy()
-            log_val_images[cfg.model.modality].append(prepare_image_for_logging(result_image))
+                result_image = prepare_image_for_logging(result_image)
+            log_val_images[cfg.model.modality].append(result_image)
 
     val_epoch_loss = val_epoch_loss / len(dataloader)
 
