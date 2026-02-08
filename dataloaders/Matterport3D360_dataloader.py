@@ -17,8 +17,8 @@ class Matterport3D360(Dataset):
         self.log_depth = log_depth
         self.data_augmentation = data_augmentation
         self.debug = debug
-        self.data_path = []
-        self.labels_path = []
+        self.rgb_path = []
+        self.gt_path = []
         self.vis_depth_path = []
         self.data_map = {}         
         tiny_val = False
@@ -29,23 +29,23 @@ class Matterport3D360(Dataset):
 
         self.load_data(self.split)
         if self.debug:
-            self.data_path = self.data_path[:100]
-            self.labels_path = self.labels_path[:100]
+            self.rgb_path = self.rgb_path[:100]
+            self.gt_path = self.gt_path[:100]
             self.vis_depth_path = self.vis_depth_path[:100]
 
         if tiny_val:
             if self.debug:
-                self.data_path = self.data_path[::3]
-                self.labels_path = self.labels_path[::3]
+                self.rgb_path = self.rgb_path[::3]
+                self.gt_path = self.gt_path[::3]
                 self.vis_depth_path = self.vis_depth_path[::3]
             else:
-                self.data_path = self.data_path[::10]
-                self.labels_path = self.labels_path[::10]
+                self.rgb_path = self.rgb_path[::10]
+                self.gt_path = self.gt_path[::10]
                 self.vis_depth_path = self.vis_depth_path[::10]
         
         self.set_depth_ranges()
-        assert len(self.data_path) == len(self.labels_path) == len(self.vis_depth_path), \
-        f"Number of samples in data_path: {len(self.data_path)}, labels_path: {len(self.labels_path)}, \
+        assert len(self.rgb_path) == len(self.gt_path) == len(self.vis_depth_path), \
+        f"Number of samples in rgb_path: {len(self.rgb_path)}, gt_path: {len(self.gt_path)}, \
         vis_depth_path: {len(self.vis_depth_path)} are not equal."
 
 
@@ -97,12 +97,12 @@ class Matterport3D360(Dataset):
             elif sample.endswith("_vis.png"):
                 self.data_map[key]["vis_depth"] = sample_path
         
-        self.data_path = []
-        self.labels_path = []
+        self.rgb_path = []
+        self.gt_path = []
         self.vis_depth_path = []
         for key in self.data_map.keys():
-            self.data_path.append(self.data_map[key]["rgb"])
-            self.labels_path.append(self.data_map[key]["depth"])
+            self.rgb_path.append(self.data_map[key]["rgb"])
+            self.gt_path.append(self.data_map[key]["depth"])
             self.vis_depth_path.append(self.data_map[key]["vis_depth"])
         
 
@@ -193,12 +193,12 @@ class Matterport3D360(Dataset):
 
 
     def __len__(self):
-        return len(self.data_path)
+        return len(self.rgb_path)
     
 
     def __getitem__(self, idx):
-        rgb_path = self.data_path[idx]
-        depth_path = self.labels_path[idx]
+        rgb_path = self.rgb_path[idx]
+        depth_path = self.gt_path[idx]
         vis_depth_path = self.vis_depth_path[idx]
 
         rgb_image = Image.open(rgb_path).convert("RGB")

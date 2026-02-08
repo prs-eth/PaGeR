@@ -14,18 +14,18 @@ class Stanford2D3DS(Dataset):
         self.log_depth = log_depth
         self.data_augmentation = data_augmentation
         self.debug = debug
-        self.data_path = []
+        self.data_paths = []
         self.fetch_data_paths(self.data_path)
         
         if self.debug:
-            self.data_path = self.data_path[:100]
+            self.data_paths = self.data_paths[:100]
 
         self.set_depth_ranges()
 
 
     def fetch_data_paths(self, data_path):
         for path in data_path.rglob("*_rgb.png"):
-            self.data_path.append(path)
+            self.data_paths.append(path)
 
     def set_depth_ranges(self):
         self.MIN_DEPTH = 1e-2
@@ -78,7 +78,7 @@ class Stanford2D3DS(Dataset):
     
 
     def __getitem__(self, idx):
-        rgb_path = self.data_path[idx]
+        rgb_path = self.data_paths[idx]
         depth_path = rgb_path.parent / (rgb_path.name.replace("_rgb.png", "_depth.png"))
         depth_path = depth_path.parent.parent / "depth" / depth_path.name
 

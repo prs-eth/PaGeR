@@ -108,10 +108,10 @@ class Structured3D(Dataset):
         return depth_tensor, depth_cubemap_tensor, mask_tensor, mask_cubemap_tensor
 
 
-    def process_normal(self, normals_np: np.ndarray, shift_ratio=0.0):
+    def process_normals(self, normals_np: np.ndarray, shift_ratio=0.0):
         normals_np = normals_np.astype(np.float32)
         normals_np = roll_augment(normals_np, shift_ratio * self.WIDTH)
-        normals_np = roll_normal(normals_np, shift_ratio * self.WIDTH)
+        normals_np = roll_normals(normals_np, shift_ratio * self.WIDTH)
         normals_tensor = torch.from_numpy(normals_np).permute(2, 0, 1)
         normals_cubemap_tensor = erp_to_cubemap(normals_tensor)
         return normals_tensor, normals_cubemap_tensor
@@ -140,7 +140,7 @@ class Structured3D(Dataset):
 
             rgb_tensor, rgb_cubemap_tensor = self.process_rgb(rgb_image, shift_ratio)
             depth_tensor, depth_cubemap_tensor, mask_tensor, mask_cubemap_tensor = self.process_depth(depth, shift_ratio)
-            normals_tensor, normals_cubemap_tensor = self.process_normal(normals, shift_ratio)
+            normals_tensor, normals_cubemap_tensor = self.process_normals(normals, shift_ratio)
 
             id = rgb_path.parts[6]+ "_" + rgb_path.parts[8]
 

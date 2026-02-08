@@ -15,7 +15,7 @@ class ScannetPP(Dataset):
         self.log_depth = log_depth
         self.data_augmentation = data_augmentation
         self.debug = debug
-        self.data_path = []
+        self.data_paths = []
         
         tiny_val = False
         if self.split == 'test':
@@ -30,13 +30,13 @@ class ScannetPP(Dataset):
         self.fetch_data_paths(self.data_path, split_file_path)
         
         if self.debug:
-            self.data_path = self.data_path[:100]
+            self.data_paths = self.data_paths[:100]
 
         if tiny_val:
             if self.debug:
-                self.data_path = self.data_path[::5]
+                self.data_paths = self.data_paths[::5]
             else:
-                self.data_path = self.data_path[::50]
+                self.data_paths = self.data_paths[::50]
 
         self.set_depth_ranges()
 
@@ -48,7 +48,7 @@ class ScannetPP(Dataset):
                 scene_id = line.strip()
                 scene_path = data_path / f"data/{scene_id}/panocam/resized_images"
                 for path in scene_path.rglob("*.jpg"):
-                    self.data_path.append(path)
+                    self.data_paths.append(path)
 
     def set_depth_ranges(self):
         self.MIN_DEPTH = 1e-2
@@ -93,11 +93,11 @@ class ScannetPP(Dataset):
         return depth_tensor, depth_cubemap_tensor, mask_tensor, mask_cubemap_tensor
 
     def __len__(self):
-        return len(self.data_path)
+        return len(self.data_paths)
     
 
     def __getitem__(self, idx):
-        rgb_path = self.data_path[idx]
+        rgb_path = self.data_paths[idx]
         depth_path = rgb_path.parent.parent / "resized_depth" / (rgb_path.stem + ".png")
 
         rgb_image = Image.open(rgb_path).convert("RGB").resize((self.WIDTH, self.HEIGHT), Image.LANCZOS)

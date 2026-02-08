@@ -4,11 +4,8 @@ This project implements **PaGeR**, a Computer Vision method for estimating geome
 
 [![Website](assets/badge-website.svg)](website here)
 [![Paper](assets/badge-pdf.svg)](paper here)
-[![Demo](https://img.shields.io/badge/🤗%20Depth-Demo-yellow)](https://huggingface.co/spaces/prs-eth/PaGeR)
-[![Dataset(coming soon)](https://img.shields.io/badge/PanoInfinigen-Dataset-blue)](dataset link here)
-[![Depth Model](https://img.shields.io/badge/🤗%20Depth-Model-green)](https://huggingface.co/prs-eth/PaGeR-depth)
-[![Normals Model](https://img.shields.io/badge/🤗%20Normals-Model-green)](https://huggingface.co/prs-eth/PaGeR-normals)
-[![Metric Depth Model](https://img.shields.io/badge/🤗%20Normals-Model-red)](https://huggingface.co/prs-eth/PaGeR-metric-depth)
+[![Demo](https://img.shields.io/badge/🤗%20Demo-yellow)](https://huggingface.co/spaces/prs-eth/PaGeR)
+[![Dataset and Models](https://img.shields.io/badge/🤗%20Collection-green)](https://huggingface.co/prs-eth/PaGeR)
 
 Team:
 [Vukasin Bozic](https://vulus98.github.io/),
@@ -32,7 +29,7 @@ We present **PaGeR**, a diffusion-based model for panoramic geometry reconstruct
 **There are several ways to interact with PaGeR**:
 
 1. A quick start is to use our HF-hosted demo: 
-<a href="https://huggingface.co/spaces/prs-eth/PaGeR"><img src="https://img.shields.io/badge/🤗%20Depth-Demo-yellow" height="16"></a> 
+<a href="https://huggingface.co/spaces/prs-eth/PaGeR"><img src="https://img.shields.io/badge/🤗%20Demo-yellow" height="16"></a> 
 
 2. Run the demo locally (requires a 24VRAM GPU) -> see instructions below. 
 
@@ -69,6 +66,14 @@ The model checkpoints are hosted on Hugging Face:
 - Depth: [prs-eth/PaGeR-depth](https://huggingface.co/prs-eth/PaGeR-depth)
 - Metric Depth: [prs-eth/PaGeR-metric-depth](https://huggingface.co/prs-eth/PaGeR-metric-depth)
 - Normals: [prs-eth/PaGeR-normals](https://huggingface.co/prs-eth/PaGeR-normals)
+
+Models specialized for indoor scenes are also available:
+- Depth Indoor: [prs-eth/PaGeR-depth-indoor](https://huggingface.co/prs-eth/PaGeR-depth-indoor)
+- Metric Depth Indoor: [prs-eth/PaGeR-metric-depth-indoor](https://huggingface.co/prs-eth/PaGeR-metric-depth-indoor)
+
+As well as the Surface Normals Estimation model finetuned on Structured3D after the pretraining:
+- Normals-Structured3D: [prs-eth/PaGeR-normals-Structured3D](https://huggingface.co/prs-eth/PaGeR-normals-Structured3D)
+
 You can either download them automatically by specifying the HF checkpoint name in the arguments, or download them manually and load from a local path. If you choose the latter, please preserve the original folder structure, as in the Hugging Face repository.
 
 ### 📥 Download the datasets
@@ -89,12 +94,13 @@ We provide the dataloaders for all of these datasets. You just need to choose th
 The easiest way to test PaGeR locally is to run the Gradio demo. Make sure you have installed the dependencies as described above, then run:
 
 ```bash
-python app.py
+python app.py --enable_xformers
 ``` 
 Now you can test the model, explore interactive 3D visualizations on both provided examples and your own images, or download the results.
 
 ## 🔧 Configuration settings
 We use [OmegaConf](https://omegaconf.readthedocs.io/en/2.3_branch/) and [argparse](https://docs.python.org/3/library/argparse.html) for configuration management in all our scripts and models. The parameters for running the script could be influenced by either setting it in the config script, or directly providing a parameter in the CLI. The latter will always take precedence. Note that the model loading parameters will always be loaded from a YAML config file stored along with the model checkpoint, and they won't be overwritten by the local config or CLI args. 
+Feel free to set up your own configuration files; the template is given as `configs/base.yaml`.
 
 ## 🚀 Run inference
 
@@ -111,8 +117,6 @@ python inference.py \
     --pred_only \
 ```
 
-TODO: generate_point_cloud explanation
-
 ### ⚙️ Inference settings
 
 The behavior of the code can be customized in the following ways:
@@ -127,13 +131,26 @@ The behavior of the code can be customized in the following ways:
 | `scenes` | Scene type to use: `indoor`, `outdoor`, or `both` (if supported). |
 | `img_report_frequency` | Save an example output image every **N** samples. |
 | `pred_only` | Save only the prediction image (otherwise saves an RGB + prediction mosaic). |
-| `generate_eval` | Save predictions as `.npz` files for later evaluation. |
+| `generate_eval` | Save predictions as `.npz` files for later evaluation or *Point Cloud Generation*. |
 | `enable_xformers` | Enable memory-efficient attention (**recommended**). |
 
+### 🧊 Point Cloud Generation
 
-## 📊 Run Evaluation (for academic comparisons)
+Once the inference results are generated, you can also visualize rgb- or surface normals- colored 3D point cloud:
+```bash
+python generate_point_cloud.py \
+    --data_path "path/to/dataset" \
+    --dataset "dataset-choice" \
+    --color_modality "rgb-or-normals" \
+    --depth_path "path/to/depth/predictions" \
+    --normals_path "path/to/normals/predictions"
+```
 
-In order to run evaluation of inference results of our (or some other) model with the standard set of depth estimation [metrics](https://huggingface.co/blog/Isayoften/monocular-depth-estimation-guide)
+Note that you should run inference with `generate_eval` set to *True*, since this code will try to load raw predictions from `eval` folder used for evaluation.
+
+## 📊 Run Evaluation
+
+In order to run depth evaluation of inference results of our (or some other) model with the standard set of depth estimation [metrics](https://huggingface.co/blog/Isayoften/monocular-depth-estimation-guide):
 
 ```bash
 # Depth
@@ -153,170 +170,124 @@ python evaluation/normals_estimation.py \
     --pred_path "path/to/preds/folder" \
     --data_path "path/to/dataset" \
     --dataset "dataset-choice" \
-    --alignment_type "alignment-type-to-apply" \
-    --save_error_maps
 ```
-
+Finally, edge sharpness evaluation is run as:
 ```bash
 # Edges
-python script/iid/run.py \
-    --checkpoint prs-eth/marigold-iid-appearance-v1-1 \
-    --denoise_steps 4 \
-    --ensemble_size 1 \
-    --input_rgb_dir input/in-the-wild_example \
-    --output_dir output/in-the-wild_example
+python evaluation/edge_estimation.py \
+    --pred_path "path/to/preds/folder" \
+    --data_path "path/to/dataset" \
+    --dataset "dataset-choice" \
 ```
 
 ### Evaluation Settings
 
 The behavior of the code can be customized in the following ways:
 
-| Argument | Type | Choices | Description |
-|--------|------|--------|-------------|
-| `--data_path` | `str` | – | Root directory of the dataset containing ground-truth depth and metadata. |
-| `--dataset` | `str` | `PanoInfinigen`, `Matterport3D360`, `Stanford2D3DS`, `Structured3D`, `Structured3D_ScannetPP` | Dataset to evaluate on. Use `PanoInfinigen` for the synthetic dataset. |
-| `--pred_path` | `str` | – | Directory containing the predicted depth maps to be evaluated. |
-| `--alignment_type` | `str` | `metric`, `scale`, `scale_and_shift` | Alignment strategy applied between prediction and ground truth before evaluation. |
-| `--save_error_maps` | `flag` | – | If set, saves per-sample error maps during evaluation. |
-| `--error_maps_saving_frequency` | `int` | – | Frequency (in number of batches) at which error maps are saved. |
+| Argument | Description |
+|--------|-------------|
+| `data_path` | Root directory of the dataset. |
+| `dataset` | Dataset to use (list given above). |
+| `pred_path` | Directory containing the predicted depth maps to be evaluated. |
+| `alignment_type`  | Alignment strategy applied between prediction and ground truth before evaluation. |
+| `save_error_maps` | If set, saves per-sample error maps during evaluation. |
+| `error_maps_saving_frequency` | Frequency (in number of batches) at which error maps are saved. |
 
 ---
 
 ## 🏋🏻 Run training 
-
-## 🦿 Evaluation on test datasets <a name="evaluation"></a>
-Install additional dependencies:
+The training for both depth and surface normals model is run from the single script, for example:
 
 ```bash
-pip install -r requirements+.txt -r requirements.txt
-``` 
-
-Set data directory variable (also needed in evaluation scripts) and download the evaluation datasets ([depth](https://share.phys.ethz.ch/~pf/bingkedata/marigold/evaluation_dataset), [normals](https://share.phys.ethz.ch/~pf/bingkedata/marigold/marigold_normals/evaluation_dataset)) into the corresponding subfolders:
-
-```bash
-export BASE_DATA_DIR=<YOUR_DATA_DIR>  # Set target data directory
-
-# Depth
-wget -r -np -nH --cut-dirs=4 -R "index.html*" -P ${BASE_DATA_DIR} https://share.phys.ethz.ch/~pf/bingkedata/marigold/evaluation_dataset/
-
-# Normals
-wget -r -np -nH --cut-dirs=4 -R "index.html*" -P ${BASE_DATA_DIR} https://share.phys.ethz.ch/~pf/bingkedata/marigold/marigold_normals/evaluation_dataset.zip
-unzip ${BASE_DATA_DIR}/evaluation_dataset.zip -d ${BASE_DATA_DIR}/
-rm -f ${BASE_DATA_DIR}/evaluation_dataset.zip
+python train.py \
+    --config "path/to/config" \
+    --modality "depth" \
+    --enable_xformers \
+    --data_path "path/to/dataset" \
+    --dataset "PanoInfinigen" \
+    --log_scale \
+    ...
 ```
-For download instructions of the intrinsic image decomposition test data, please refer to [iid-appearance instructions](script/iid/dataset_preprocess/interiorverse_appearance/README.md) and [iid-lighting instructions](script/iid/dataset_preprocess/hypersim_lighting/README.md). 
+Note again that the CLI arguments will overwrite the arguments given in the config file.
 
-Run inference and evaluation scripts, for example:
+### Training settings
 
-```bash
-# Depth
-bash script/depth/eval/11_infer_nyu.sh  # Run inference
-bash script/depth/eval/12_eval_nyu.sh   # Evaluate predictions
-```
+Here we provide an exhaustive list of training arguments along with the short description:
 
-```bash
-# Normals
-bash script/normals/eval/11_infer_scannet.sh  # Run inference
-bash script/normals/eval/12_eval_scannet.sh   # Evaluate predictions
-```
+#### Global Settings
+| Argument | Description |
+| :--- | :--- |
+| `debug` | Use a small subset of the dataset; useful for quick debugging. |
+| `seed` | A seed for reproducible training. |
 
-```bash
-# IID
-bash script/iid/eval/11_infer_appearance_interiorverse.sh  # Run inference
-bash script/iid/eval/12_eval_appearance_interiorverse.sh   # Evaluate predictions
+#### Training Configuration
+| Argument | Description |
+| :--- | :--- |
+| `num_train_epochs` | Total number of training epochs to perform. |
+| `max_train_steps` | Total number of training steps (overrides `num_train_epochs`). |
+| `gradient_accumulation_steps` | Number of steps to accumulate before a backward/update pass. |
+| `only_train_attention_layers` | Train only the attention parameters of the UNet model. |
+| `gradient_checkpointing` | Enable to save memory (slower backward pass). |
+| `resume_path` | Training checkpoint to resume from (expects an `Accelerator` folder). |
+| `use_EMA` | Enable Exponential Moving Average (EMA) for model weights. |
 
-bash script/iid/eval/21_infer_lighting_hypersim.sh  # Run inference
-bash script/iid/eval/22_eval_lighting_hypersim.sh   # Evaluate predictions
-```
+#### Model Configuration
+| Argument | Description |
+| :--- | :--- |
+| `modality` | Modality to use for training: `depth` or `normals`. |
+| `pretrained_path` | Path to pretrained model or HuggingFace repo ID. |
+| `checkpoint_path` | UNet checkpoint to load (loads `.safetensors` weights only). |
+| `enable_xformers` | Enable memory-efficient attention (**recommended**). |
+| `unet_positional_encoding` | Type of positional encoding: `uv`, `RoPE`, or `none`. |
+| `vae_use_RoPE` | Whether or not to use RoPE positional encoding in the VAE. |
+| `metric_depth` | Use metric depth instead of relative depth. Depth only. |
+| `log_scale` | Use log scale depth instead of linear. Depth only. |
 
-```bash
-# Depth (the original CVPR version)
-bash script/depth/eval_old/11_infer_nyu.sh  # Run inference
-bash script/depth/eval_old/12_eval_nyu.sh   # Evaluate predictions
-```
+#### Data Configuration
+| Argument | Description |
+| :--- | :--- |
+| `data_path` | Root directory of the training dataset. |
+| `dataset` | Dataset selection (e.g., `PanoInfinigen`, `Matterport3D360`). |
+| `scenes` | Scene type to use: `indoor`, `outdoor`, or `both`. |
+| `batch_size` | Training batch size per device. |
+| `use_data_augmentation` | Enable data augmentation (horizontal random rotation). |
 
-Note: although the seed has been set, the results might still be slightly different on different hardware.
+#### Optimization
+| Argument | Description |
+| :--- | :--- |
+| `learning_rate` | Initial learning rate. |
+| `lr_exp_warmup_steps` | Ratio of steps for exponential LR warmup (e.g., 0.03 = 3%). |
+| `adam_beta1` / `beta2` | Beta parameters for the Adam optimizer. |
+| `adam_weight_decay` | Weight decay to use for optimization. |
+| `adam_epsilon` | Epsilon value for the Adam optimizer. |
+| `clip_grad_norm` | Enable gradient clipping. |
+| `max_grad_norm` | Max gradient norm threshold. |
 
-## 🏋️ Training
+#### Loss Weights (depth training only)
+| Argument | Description |
+| :--- | :--- |
+| `l1_loss_weight` | Weight for the L1 loss term. |
+| `grad_loss_weight` | Weight for the gradient loss term. |
+| `normals_consistency_loss_weight` | Weight for the normals consistency loss. |
+| `invalid_mask_weight` | Weight for the invalid mask loss. |
 
-Based on the previously created environment, install extended requirements:
+#### Validation & Logging
+| Argument | Description |
+| :--- | :--- |
+| `run_validation` | Whether to use the full validation set. |
+| `run_tiny_validation` | Whether to use a smaller validation set for mid-training checks. |
+| `tiny_val_frequency` | Frequency for running the tiny validation (in steps). |
+| `tracker_project_name` | Project name for the experiment tracker. |
+| `save_path` | Directory where predictions and checkpoints are saved. |
+| `save_frequency` | Save the model every **X** epochs. |
+| `loss_report_frequency` | How often to report loss (in steps). |
+| `img_report_frequency` | How often to report/save image examples (in steps). |
+| `report_to` | Logging backend: `tensorboard` or `wandb`. |
+| `run_name` | Name for the WandB run. |
 
-```bash
-pip install -r requirements++.txt -r requirements+.txt -r requirements.txt
-```
+#### Resuming training
 
-Set environment parameters for the data directory:
-
-```bash
-export BASE_DATA_DIR=YOUR_DATA_DIR        # directory of training data
-export BASE_CKPT_DIR=YOUR_CHECKPOINT_DIR  # directory of pretrained checkpoint
-```
-
-Download Stable Diffusion v2 [checkpoint](https://huggingface.co/stabilityai/stable-diffusion-2) into `${BASE_CKPT_DIR}` ([backup link](https://share.phys.ethz.ch/~pf/bingkedata/marigold/checkpoint/stable-diffusion-2.tar))
-
-### Prepare for training data
-**Depth**
-
-Prepare for [Hypersim](https://github.com/apple/ml-hypersim) and [Virtual KITTI 2](https://europe.naverlabs.com/research/computer-vision/proxy-virtual-worlds-vkitti-2/) datasets and save into `${BASE_DATA_DIR}`. Please refer to [this README](script/depth/dataset_preprocess/hypersim/README.md) for Hypersim preprocessing.
-
-**Normals**
-
-Prepare for [Hypersim](https://github.com/apple/ml-hypersim), [Interiorverse](https://interiorverse.github.io/) and [Sintel](http://sintel.is.tue.mpg.de/) datasets and save into `${BASE_DATA_DIR}`. Please refer to [this README](script/normals/dataset_preprocess/hypersim/README.md) for Hypersim preprocessing, [this README](script/normals/dataset_preprocess/interiorverse/README.md) for Interiorverse and [this README](script/normals/dataset_preprocess/sintel/README.md) for Sintel.
-
-**Intrinsic Image Decomposition**
-
-*Appearance model*: Prepare for [Interiorverse](https://interiorverse.github.io/) dataset and save into `${BASE_DATA_DIR}`. Please refer to [this README](script/iid/dataset_preprocess/interiorverse_appearance/README.md) for Interiorverse preprocessing.
-
-*Lighting model*: Prepare for [Hypersim](https://github.com/apple/ml-hypersim) dataset and save into `${BASE_DATA_DIR}`. Please refer to [this README](script/iid/dataset_preprocess/hypersim_lighting/README.md) for Hypersim preprocessing.
-
-
-### Run training script
-
-```bash
-# Depth
-python script/depth/train.py --config config/train_marigold_depth.yaml
-```
-
-```bash
-# Normals
-python script/normals/train.py --config config/train_marigold_normals.yaml
-```
-
-```bash
-# IID (appearance model)
-python script/iid/train.py --config config/train_marigold_iid_appearance.yaml
-
-# IID (lighting model)
-python script/iid/train.py --config config/train_marigold_iid_lighting.yaml
-```
-
-Resume from a checkpoint, e.g.:
-
-```bash
-# Depth
-python script/depth/train.py --resume_run output/marigold_base/checkpoint/latest
-```
-
-```bash
-# Normals
-python script/normals/train.py --resume_run output/train_marigold_normals/checkpoint/latest
-```
-
-```bash
-# IID (appearance model)
-python script/iid/train.py --resume_run output/train_marigold_iid_appearance/checkpoint/latest
-
-# IID (lighting model)
-python script/iid/train.py --resume_run output/train_marigold_iid_lighting/checkpoint/latest
-```
-
-### Compose checkpoint:
-Only the U-Net and scheduler config are updated during training. They are saved in the training directory. To use the inference pipeline with your training result:
-- replace `unet` folder in Marigold checkpoints with that in the `checkpoint` output folder.
-- replace the `scheduler/scheduler_config.json` file in Marigold checkpoints with `checkpoint/scheduler_config.json` generated during training.
-Then refer to [this section](#evaluation) for evaluation.
-
-**Note**: Although random seeds have been set, the training result might be slightly different on different hardwares. It's recommended to train without interruption.
+Along with the regular model checkpointing, full Accelerate checkpoint is saved as well in subfolder `training_checkpoint` inside the checkpointing folder. This enables the continuation of the training - set through the parameter `resume_path`. 
 
 ## ✏️ Contributing
 
