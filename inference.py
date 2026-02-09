@@ -143,7 +143,7 @@ def main():
                                                         "mode": "trained", "config": checkpoint_cfg.model}
 
     pager = Pager(model_configs=checkpoint_config, pretrained_path = cfg.model.pretrained_path, 
-                  train_modality=cfg.model.modality, device=device)
+                  train_modality=cfg.model.modality, enable_xformers=cfg.enable_xformers, device=device)
     pager.unet[cfg.model.modality].to(device, dtype=pager.weight_dtype)
     pager.unet[cfg.model.modality].eval()
 

@@ -456,7 +456,7 @@ def main():
                                                  "config": cfg.model}
 
     pager = Pager(model_configs=checkpoint_config, pretrained_path = cfg.model.pretrained_path, 
-                  train_modality=cfg.model.modality, device=accelerator.device)
+                  train_modality=cfg.model.modality, enable_xformers=cfg.enable_xformers, device=accelerator.device)
     pager.prepare_training(accelerator, cfg.training.gradient_checkpointing)
  
     if accelerator.is_main_process:

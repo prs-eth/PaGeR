@@ -1,5 +1,6 @@
 debug: false
 seed: 42
+enable_xformers: False
 
 training:
   num_train_epochs: 10
@@ -14,7 +15,6 @@ model:
   modality: depth               # depth | normals
   pretrained_path: GonzaloMG/marigold-e2e-ft-depth
   checkpoint_path: null
-  enable_xformers: true
   unet_positional_encoding: RoPE  # uv | RoPE | none
   vae_use_RoPE: true  # true | false
   metric_depth: false

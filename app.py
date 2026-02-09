@@ -15,10 +15,7 @@ from src.pager import Pager
 from src.utils.geometry_utils import compute_edge_mask, erp_to_point_cloud_glb, erp_to_cubemap
 from src.utils.utils import prepare_image_for_logging
 
-MIN_DEPTH = np.log(1e-2)
-DEPTH_RANGE = np.log(75.0)
 POINTCLOUD_DOWNSAMPLE_FACTOR = 2
-MAX_POINTCLOUD_POINTS = 200000
 EXAMPLES_DIR = Path(__file__).parent / "examples"
 EXAMPLE_IMAGES = [
     str(p)
@@ -72,7 +69,7 @@ def generate_ERP(input_rgb, modality):
             pred, pred_image = pager.process_depth_output(pred_cubemap, orig_size=(1024, 2048), 
                                                         min_depth=MIN_DEPTH, 
                                                         depth_range=DEPTH_RANGE, 
-                                                        log_scale=pager.model_configs["depth"]["config"].log_scale)
+                                                        log_scale=LOG_SCALE)
             pred, pred_image = pred[0].cpu().numpy(), pred_image.cpu().numpy()
             pred_image = np.clip(pred_image, pred_image.min(), np.quantile(pred_image, 0.99))
             pred_image = prepare_image_for_logging(pred_image)
@@ -165,6 +162,10 @@ except Exception as e:
 depth_config = OmegaConf.load(depth_checkpoint_config_path)
 checkpoint_config["depth"] = {"path": args.depth_checkpoint_path, "mode": "trained", "config": depth_config.model}
 
+LOG_SCALE = depth_config.model.log_scale
+MIN_DEPTH = np.log(1e-2) if LOG_SCALE else 1e-2
+DEPTH_RANGE = np.log(75.0) - MIN_DEPTH if LOG_SCALE else 75.0 - MIN_DEPTH
+
 try:
     normals_checkpoint_config_path = hf_hub_download(
         repo_id=args.normals_checkpoint_path,
@@ -175,7 +176,7 @@ except Exception as e:
 normals_config = OmegaConf.load(normals_checkpoint_config_path)
 checkpoint_config["normals"] = {"path": args.normals_checkpoint_path, "mode": "trained", "config": normals_config.model}
 
-pager = Pager(model_configs=checkpoint_config, pretrained_path = depth_config.model.pretrained_path, device=device)
+pager = Pager(model_configs=checkpoint_config, pretrained_path = depth_config.model.pretrained_path, enable_xformers=args.enable_xformers, device=device)
 pager.unet["depth"].to(device, dtype=pager.weight_dtype)
 pager.unet["depth"].eval()
 pager.unet["normals"].to(device, dtype=pager.weight_dtype)

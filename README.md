@@ -219,6 +219,7 @@ Here we provide an exhaustive list of training arguments along with the short de
 | :--- | :--- |
 | `debug` | Use a small subset of the dataset; useful for quick debugging. |
 | `seed` | A seed for reproducible training. |
+| `enable_xformers` | Enable memory-efficient attention (**recommended**). |
 
 #### Training Configuration
 | Argument | Description |
@@ -237,7 +238,6 @@ Here we provide an exhaustive list of training arguments along with the short de
 | `modality` | Modality to use for training: `depth` or `normals`. |
 | `pretrained_path` | Path to pretrained model or HuggingFace repo ID. |
 | `checkpoint_path` | UNet checkpoint to load (loads `.safetensors` weights only). |
-| `enable_xformers` | Enable memory-efficient attention (**recommended**). |
 | `unet_positional_encoding` | Type of positional encoding: `uv`, `RoPE`, or `none`. |
 | `vae_use_RoPE` | Whether or not to use RoPE positional encoding in the VAE. |
 | `metric_depth` | Use metric depth instead of relative depth. Depth only. |

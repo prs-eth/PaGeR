@@ -23,6 +23,7 @@ class Pager(nn.Module):
                  pretrained_path,
                  train_modality=None,
                  device=torch.device("cpu"),
+                 enable_xformers=False,
                  weight_dtype=torch.float32):
         super().__init__()
         self.model_configs = model_configs
@@ -31,7 +32,7 @@ class Pager(nn.Module):
         self.depth_latent_scale_factor = 0.18215
         self.train_modality = train_modality
         self.device = device
-        self.prepare_model_components(pretrained_path, model_configs)
+        self.prepare_model_components(pretrained_path, model_configs, enable_xformers)
         self.prepare_empty_encoding()
 
         self.alpha_prod = self.noise_scheduler.alphas_cumprod.to(device, dtype=weight_dtype)
@@ -40,7 +41,7 @@ class Pager(nn.Module):
         del self.noise_scheduler
 
 
-    def prepare_model_components(self, pretrained_path, model_configs):
+    def prepare_model_components(self, pretrained_path, model_configs, enable_xformers):
         vae_use_RoPE = None
         for checkpoint_cfg in model_configs.values():
             if vae_use_RoPE is None:
@@ -86,7 +87,7 @@ class Pager(nn.Module):
             self.set_valid_pad_conv(self.unet[modality])
 
         
-        if checkpoint_cfg['config'].enable_xformers:
+        if enable_xformers:
             if is_xformers_available() and self.device.type == "cuda":
                 import xformers
                 if self.unet.get("depth"):
