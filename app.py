@@ -16,7 +16,7 @@ from src.utils.geometry_utils import compute_edge_mask, erp_to_point_cloud_glb, 
 from src.utils.utils import prepare_image_for_logging
 
 POINTCLOUD_DOWNSAMPLE_FACTOR = 2
-EXAMPLES_DIR = Path(__file__).parent / "examples"
+EXAMPLES_DIR = Path(__file__).parent / "assets/examples"
 EXAMPLE_IMAGES = [
     str(p)
     for p in sorted(EXAMPLES_DIR.glob("*"))
@@ -28,7 +28,7 @@ def parse_args():
 
     parser.add_argument(
         "--depth_checkpoint_path",
-        default="prs-eth/PaGeR-depth",
+        default="prs-eth/PaGeR-depth-indoor",
         type=str,
         help="UNet checkpoint to load.",
     )
