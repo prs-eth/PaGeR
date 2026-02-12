@@ -98,7 +98,6 @@ if __name__ == "__main__":
 
         edge_filtered_mask = compute_edge_mask(
             depth,
-            abs_thresh=0.002,
             rel_thresh=0.002,
         )
         mask = mask & edge_filtered_mask

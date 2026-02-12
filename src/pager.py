@@ -45,8 +45,8 @@ class Pager(nn.Module):
         vae_use_RoPE = None
         for checkpoint_cfg in model_configs.values():
             if vae_use_RoPE is None:
-                vae_use_RoPE = checkpoint_cfg['config'].vae_use_RoPE == "RoPE"
-            elif vae_use_RoPE != (checkpoint_cfg['config'].vae_use_RoPE == "RoPE"):
+                vae_use_RoPE = checkpoint_cfg['config'].vae_use_RoPE
+            elif vae_use_RoPE != (checkpoint_cfg['config'].vae_use_RoPE):
                 raise ValueError("All UNet checkpoints must use the same VAE positional encoding configuration.")
             
         self.noise_scheduler = DDPMScheduler.from_pretrained(pretrained_path, subfolder="scheduler", rescale_betas_zero_snr=True)

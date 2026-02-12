@@ -104,11 +104,10 @@ def process_panorama(image_path, output_type, include_pointcloud):
             color = np.array(raw_pred)
             color = np.transpose(color, (1, 2, 0))
             _release_cuda_memory()
-            depth = np.squeeze(generate_ERP(input_rgb, "depth", )[1])
+            depth = np.squeeze(generate_ERP(input_rgb, "depth")[1])
         
         edge_filtered_mask = compute_edge_mask(
             depth,
-            abs_thresh=0.002,
             rel_thresh=0.002,
         )
 
