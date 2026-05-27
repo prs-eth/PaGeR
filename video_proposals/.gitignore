@@ -1,7 +1,0 @@
-# Heavy generated artifacts — regenerable from the scripts
-cache/
-frames/
-out/
-__pycache__/
-*.png
-test_*.png
