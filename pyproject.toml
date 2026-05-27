@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pager"
+version = "0.1.0"
+description = "PaGeR — unified panoramic geometry estimation."
+readme = "README.md"
+requires-python = ">=3.9,<3.13"
+license = { text = "Apache-2.0" }
+authors = [{ name = "PaGeR Authors" }]
+
+# Strict runtime deps used by inference + evaluation + point-cloud export.
+# Each entry is exercised by the release code; nothing in this list is dead.
+dependencies = [
+    "torch>=2",
+    "torchvision",
+    "numpy<2",
+    "scipy",
+    "einops",
+    "addict",
+    "safetensors",
+    "huggingface_hub",
+    "datasets",
+    "omegaconf",
+    "open_clip_torch",
+    "pillow",
+    "opencv-python",
+    "pytorch360convert",
+    "matplotlib",
+    "tqdm",
+    "trimesh",
+]
+
+[project.optional-dependencies]
+# Gradio demo (app.py).
+app = ["gradio>=5"]
+
+[project.urls]
+Homepage = "https://github.com/prs-eth/PaGeR"
+
+# Expose ``depth_anything_3`` as an installable package so the backbone's
+# internal absolute imports (`from depth_anything_3.cfg import ...`) resolve
+# regardless of the working directory. Inference / evaluation scripts still
+# import their own helpers via ``src.*`` (relative to the repo root).
+[tool.hatch.build.targets.wheel]
+packages = ["src/depth_anything_3"]
+
+[tool.hatch.metadata]
+allow-direct-references = true

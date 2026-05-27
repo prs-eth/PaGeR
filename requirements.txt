@@ -1,0 +1,31 @@
+# Core
+torch>=2.0
+torchvision
+numpy<2
+scipy
+
+# Backbone + multi-head model
+einops
+addict
+safetensors
+huggingface_hub
+datasets
+omegaconf
+
+# CLIP scene classifier (auto indoor/outdoor routing)
+open_clip_torch
+
+# Panorama IO & processing
+pillow
+opencv-python
+pytorch360convert
+
+# Visualisation & CLI niceties
+matplotlib
+tqdm
+
+# Point-cloud export (generate_point_cloud.py, app.py)
+trimesh
+
+# Gradio demo (app.py) — install with `pip install -e ".[app]"` if you want it.
+# gradio>=5

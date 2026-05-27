@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.eggs/
+build/
+dist/
+.Python
+*.swp
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE / editors
+.idea/
+.vscode/
+*.iml
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# PaGeR runtime artefacts
+results/
+checkpoints/
+logs/
+wandb/
+.gradio/
+
+# Cached model weights from huggingface / places365
+.cache/
+
+# Local secrets
+.env
