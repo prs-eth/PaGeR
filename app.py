@@ -30,6 +30,7 @@ from scipy.ndimage import median_filter
 from src.pager import Pager
 from src.utils.geometry_utils import (
     compute_edge_mask,
+    cubemap_to_erp,
     erp_to_cubemap,
     erp_to_pointcloud,
 )
@@ -116,10 +117,21 @@ def _run_inference(input_rgb: np.ndarray, mode: str):
         pager, pred_dict["normals"][0], sky_pred, orig_size,
     )
 
+    # Stitch the sky probability to ERP so the point cloud can drop sky pixels
+    # directly. Depth-saturation alone (depth >= MAX_DEPTH) misses the smoothstep
+    # transition halo around the sky, where the sky-fill blend gave intermediate
+    # depths — those survive a depth threshold and look like a ceiling/dome.
+    sky_mask_erp = None
+    if sky_pred is not None:
+        with torch.inference_mode():
+            sky_prob_cube = torch.sigmoid(sky_pred.float())
+            sky_prob_erp = cubemap_to_erp(sky_prob_cube, *orig_size, fov=cube_fov)
+        sky_mask_erp = sky_prob_erp.detach().cpu().numpy().squeeze()
+
     raw_depth = np.squeeze(raw_depth)
     viz_depth = np.transpose(viz_depth, (1, 2, 0))
     viz_normals = np.transpose(viz_normals, (1, 2, 0))
-    return raw_depth, viz_depth, viz_normals, _make_depth_colorbar(raw_depth), decision_md
+    return raw_depth, viz_depth, viz_normals, _make_depth_colorbar(raw_depth), decision_md, sky_mask_erp
 
 
 def _make_depth_colorbar(raw_depth: np.ndarray, height: int = 640) -> np.ndarray:
@@ -178,20 +190,28 @@ def _ensure_pointclouds(cache: dict) -> None:
     normals_color_full = cache["viz_normals"].astype(np.float32) / 255.0
 
     edge_mask = compute_edge_mask(depth_full, rel_thresh=0.002)
+    sky_mask_full = cache.get("sky_mask_erp")
     if POINTCLOUD_DOWNSAMPLE_FACTOR > 1:
         s = POINTCLOUD_DOWNSAMPLE_FACTOR
         depth = depth_full[::s, ::s]
         rgb_color = rgb_color_full[::s, ::s]
         normals_color = normals_color_full[::s, ::s]
         edge_mask = edge_mask[::s, ::s]
+        sky_mask = sky_mask_full[::s, ::s] if sky_mask_full is not None else None
     else:
         depth, rgb_color, normals_color = depth_full, rgb_color_full, normals_color_full
+        sky_mask = sky_mask_full
 
     xyz = erp_to_pointcloud(torch.from_numpy(depth)).permute(1, 2, 0).numpy()
-    # Drop sky pixels: the sky-fill saturated them at the (post-scale) MAX_DEPTH
-    # ceiling, so they'd otherwise show up in the cloud as a far-field shell.
-    # Works for indoor and outdoor (the sky always lands at >= MAX_DEPTH).
-    sky_keep = depth < 0.99 * pager.MAX_DEPTH
+    # Drop sky pixels using the sky probability directly. A depth-saturation
+    # filter (depth >= MAX_DEPTH) catches the sky *core* but misses the soft
+    # smoothstep halo around it — those pixels get blended intermediate depths
+    # and look like a ceiling/dome. The probability mask covers the full sky
+    # region including the soft transition.
+    if sky_mask is not None:
+        sky_keep = sky_mask < 0.3
+    else:
+        sky_keep = depth < 0.99 * pager.MAX_DEPTH  # fallback
     keep_2d = (depth > 0) & np.asarray(edge_mask, dtype=bool) & sky_keep
     points = xyz[keep_2d]
 
@@ -253,7 +273,7 @@ def process_panorama(image_path, mode, output_format, cache):
     if cache is None or cache.get("key") != cache_key:
         loaded = Image.open(image_path).convert("RGB").resize((4032, 2016))
         input_rgb = np.array(loaded)
-        raw_depth, viz_depth, viz_normals, depth_colorbar, decision_md = _run_inference(input_rgb, mode)
+        raw_depth, viz_depth, viz_normals, depth_colorbar, decision_md, sky_mask_erp = _run_inference(input_rgb, mode)
         cache = {
             "key": cache_key,
             "input_rgb": input_rgb,
@@ -261,6 +281,7 @@ def process_panorama(image_path, mode, output_format, cache):
             "viz_depth": viz_depth,
             "viz_normals": viz_normals,
             "depth_colorbar": depth_colorbar,
+            "sky_mask_erp": sky_mask_erp,
             "decision_md": decision_md,
             "rgb_pc_path": None,
             "normals_pc_path": None,
@@ -367,7 +388,8 @@ with gr.Blocks() as demo:
             )
             format_choice = gr.Radio(
                 [FORMAT_MAP, FORMAT_POINTCLOUD], value=FORMAT_MAP, label="Output Format",
-                info="Show depth/normals as 2D maps, or as 3D point clouds.",
+                info="Show depth/normals as 2D maps, or as 3D point clouds. "
+                     "Switching formats reuses the cached result — no need to re-run inference.",
             )
             gr.Examples(
                 examples=EXAMPLE_IMAGES, inputs=image_input,
