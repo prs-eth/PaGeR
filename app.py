@@ -188,7 +188,11 @@ def _ensure_pointclouds(cache: dict) -> None:
         depth, rgb_color, normals_color = depth_full, rgb_color_full, normals_color_full
 
     xyz = erp_to_pointcloud(torch.from_numpy(depth)).permute(1, 2, 0).numpy()
-    keep_2d = (depth > 0) & np.asarray(edge_mask, dtype=bool)
+    # Drop sky pixels: the sky-fill saturated them at the (post-scale) MAX_DEPTH
+    # ceiling, so they'd otherwise show up in the cloud as a far-field shell.
+    # Works for indoor and outdoor (the sky always lands at >= MAX_DEPTH).
+    sky_keep = depth < 0.99 * pager.MAX_DEPTH
+    keep_2d = (depth > 0) & np.asarray(edge_mask, dtype=bool) & sky_keep
     points = xyz[keep_2d]
 
     def _colors_from(color_image):
